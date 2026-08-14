@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+
+
+html {
+    scroll-behavior: smooth;
+}
+
+/* ===========================
+   Global
+=========================== */
+
+html{
+    direction: rtl;
+    scroll-behavior: smooth;
+}
+
+body{
+
+    margin:0;
+
+    padding:0;
+
+    font-family:"Alexandria",sans-serif;
+
+    background:#F8F8FC;
+
+    color:#1F2937;
+
+    overflow-x:hidden;
+
+}
+
+
+/* Scrollbar */
+
+::-webkit-scrollbar{
+
+    width:8px;
+
+}
+
+::-webkit-scrollbar-track{
+
+    background:#F3F4F6;
+
+}
+
+::-webkit-scrollbar-thumb{
+
+    background:#5B2A86;
+
+    border-radius:20px;
+
+}
+
+::-webkit-scrollbar-thumb:hover{
+
+    background:#6D28D9;
+
+}
+
+
+/* Selection */
+
+::selection{
+
+    background:#5B2A86;
+
+    color:white;
+
+}
