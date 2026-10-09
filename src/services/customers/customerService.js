@@ -1,54 +1,31 @@
 import api from "../../api/axios";
 
-
-// جلب العملاء
 export const getCustomers = async () => {
-
-    const {data} = await api.get(
-        "/customers/"
-    );
-
-    return data;
-
+    const { data } = await api.get("/users/");
+    // فلترة العملاء فقط (CUSTOMER)
+    return data.filter(user => user.role === "CUSTOMER");
 };
 
-
-
-// إنشاء عميل
-export const createCustomer = async(payload)=>{
-
-    const {data}= await api.post(
-        "/customers/",
-        payload
-    );
-
+export const getCustomer = async (id) => {
+    const { data } = await api.get(`/users/${id}/`);
     return data;
-
 };
 
-
-
-// تعديل عميل
-export const updateCustomer = async(id,payload)=>{
-
-    const {data}= await api.patch(
-        `/customers/${id}/`,
-        payload
-    );
-
+export const createCustomer = async (payload) => {
+    // إضافة role = CUSTOMER تلقائياً
+    const { data } = await api.post("/users/", {
+        ...payload,
+        role: "CUSTOMER"
+    });
     return data;
-
 };
 
-
-
-// حذف عميل
-export const deleteCustomer = async(id)=>{
-
-    const {data}= await api.delete(
-        `/customers/${id}/`
-    );
-
+export const updateCustomer = async (id, payload) => {
+    const { data } = await api.patch(`/users/${id}/`, payload);
     return data;
+};
 
+export const deleteCustomer = async (id) => {
+    const { data } = await api.delete(`/users/${id}/`);
+    return data;
 };

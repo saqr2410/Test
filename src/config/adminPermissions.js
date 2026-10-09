@@ -1,7 +1,5 @@
 export const ADMIN_PERMISSIONS = {
-
     dashboard: {
-
         view: [
             "OWNER",
             "MANAGER",
@@ -10,132 +8,124 @@ export const ADMIN_PERMISSIONS = {
             "ACCOUNTANT",
             "DELIVERY",
         ],
-
     },
-
 
     products: {
-
         view: [
             "OWNER",
             "MANAGER",
             "PHARMACIST",
         ],
-
         create: [
             "OWNER",
             "MANAGER",
         ],
-
         update: [
             "OWNER",
             "MANAGER",
         ],
-
         delete: [
             "OWNER",
         ],
-
     },
-
 
     inventory: {
-
         view: [
             "OWNER",
             "MANAGER",
             "PHARMACIST",
         ],
-
-        update: [
+        adjust: [
             "OWNER",
             "MANAGER",
+            "PHARMACIST",
         ],
-
     },
-
 
     purchases: {
-
         view: [
             "OWNER",
             "MANAGER",
+            "ACCOUNTANT",
         ],
-
         create: [
             "OWNER",
             "MANAGER",
         ],
-
         update: [
             "OWNER",
             "MANAGER",
         ],
-
         delete: [
             "OWNER",
         ],
-
     },
-
 
     suppliers: {
-
         view: [
             "OWNER",
             "MANAGER",
+            "ACCOUNTANT",
         ],
-
         create: [
             "OWNER",
             "MANAGER",
         ],
-
         update: [
             "OWNER",
             "MANAGER",
         ],
-
         delete: [
             "OWNER",
         ],
-
     },
-
 
     sales: {
-
         view: [
             "OWNER",
             "MANAGER",
+            "ACCOUNTANT",
             "CASHIER",
         ],
-
         create: [
             "OWNER",
             "MANAGER",
+            "PHARMACIST",
             "CASHIER",
         ],
-
-        update: [
+        return: [
             "OWNER",
             "MANAGER",
+            "PHARMACIST",
         ],
-
-        delete: [
-            "OWNER",
-        ],
-
     },
-
 
     customers: {
+        view: [
+            "OWNER",
+            "MANAGER",
+        ],
+        create: [
+            "OWNER",
+            "MANAGER",
+            "PHARMACIST",
+        ],
+        update: [
+            "OWNER",
+            "MANAGER",
+            "PHARMACIST",
+        ],
+        delete: [
+            "OWNER",
+        ],
+    },
 
+
+    healthProfiles: {
         view: [
             "OWNER",
             "MANAGER",
             "PHARMACIST",
-            "CASHIER",
         ],
 
         create: [
@@ -147,112 +137,103 @@ export const ADMIN_PERMISSIONS = {
         update: [
             "OWNER",
             "MANAGER",
+            "PHARMACIST",
         ],
 
         delete: [
             "OWNER",
+            "MANAGER",
         ],
-
     },
-
 
     prescriptions: {
-
         view: [
             "OWNER",
             "MANAGER",
             "PHARMACIST",
         ],
-
         create: [
             "OWNER",
             "MANAGER",
             "PHARMACIST",
         ],
-
-        update: [
+        approve: [
             "OWNER",
             "PHARMACIST",
         ],
-
+        reject: [
+            "OWNER",
+            "PHARMACIST",
+        ],
         delete: [
             "OWNER",
         ],
-
     },
-
 
     finance: {
-
         view: [
             "OWNER",
             "ACCOUNTANT",
         ],
-
         create: [
             "OWNER",
             "ACCOUNTANT",
         ],
-
         update: [
             "OWNER",
             "ACCOUNTANT",
         ],
-
         delete: [
             "OWNER",
         ],
-
     },
 
-
     reports: {
-
         view: [
             "OWNER",
             "MANAGER",
             "ACCOUNTANT",
         ],
-
+        export: [
+            "OWNER",
+            "MANAGER",
+            "ACCOUNTANT",
+        ],
     },
 
-
     employees: {
-
         view: [
             "OWNER",
+            "MANAGER",
         ],
-
         create: [
             "OWNER",
         ],
-
         update: [
             "OWNER",
+            "MANAGER",
         ],
-
         delete: [
             "OWNER",
         ],
-
     },
 
-
     roles: {
-
         view: [
             "OWNER",
         ],
-
+        create: [
+            "OWNER",
+        ],
         update: [
             "OWNER",
         ],
-
+        delete: [
+            "OWNER",
+        ],
     },
 
-
     notifications: {
-
         view: [
             "OWNER",
             "MANAGER",
@@ -261,61 +242,49 @@ export const ADMIN_PERMISSIONS = {
             "ACCOUNTANT",
             "DELIVERY",
         ],
-
         create: [
             "OWNER",
             "MANAGER",
         ],
-
     },
-
 
     settings: {
-
         view: [
             "OWNER",
         ],
-
         update: [
             "OWNER",
         ],
-
     },
-
 
     pos: {
-
         view: [
-            "CASHIER",
             "OWNER",
+            "MANAGER",
+            "PHARMACIST",
+            "CASHIER",
         ],
-
         create: [
-            "CASHIER",
             "OWNER",
+            "MANAGER",
+            "PHARMACIST",
+            "CASHIER",
         ],
-
     },
-
 
     orders: {
-
         view: [
-            "DELIVERY",
             "OWNER",
+            "MANAGER",
+            "PHARMACIST",
+            "CASHIER",
+            "DELIVERY",
         ],
-
         update: [
-            "DELIVERY",
             "OWNER",
+            "MANAGER",
+            "PHARMACIST",
+            "DELIVERY",
         ],
-
     },
-
 };
-
-
-console.log(
-    "ADMIN PERMISSIONS LOADED",
-    ADMIN_PERMISSIONS
-);

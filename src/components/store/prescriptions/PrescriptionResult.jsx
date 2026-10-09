@@ -13,10 +13,8 @@ import {
 } from "lucide-react";
 
 import {
-
     useCart
-
-} from "../contexts/CartContext";
+} from "../../../contexts/CartContext";
 
 import toast from "react-hot-toast";
 

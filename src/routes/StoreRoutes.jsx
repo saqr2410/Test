@@ -10,6 +10,11 @@ import ProductDetails from "../pages/store/ProductDetails";
 import Cart from "../pages/store/Cart";
 import Checkout from "../pages/store/Checkout";
 
+import FastDelivery from "../pages/store/FastDelivery";
+import AuthenticProducts from "../pages/store/AuthenticProducts";
+import Support24 from "../pages/store/Support24";
+import Pharmacists from "../pages/store/Pharmacists";
+
 import MyOrders from "../pages/store/orders/MyOrders";
 import OrderDetails from "../pages/store/orders/OrderDetails";
 
@@ -20,14 +25,12 @@ import PatientProfile from "../pages/store/patients/PatientProfile";
 import CreatePatient from "../pages/store/patients/CreatePatient";
 import EditPatient from "../pages/store/patients/EditPatient";
 
-
 import AccountDashboard from "../pages/store/account/AccountDashboard";
 import Profile from "../pages/store/account/Profile";
 import Settings from "../pages/store/account/Settings";
 import Favorites from "../pages/store/account/Favorites";
 import Addresses from "../pages/store/account/Addresses";
 import HealthProfile from "../pages/store/account/HealthProfile";
-
 
 
 export default function StoreRoutes() {
@@ -74,6 +77,44 @@ export default function StoreRoutes() {
                 element={
                     <StoreLayout>
                         <Checkout />
+                    </StoreLayout>
+                }
+            />
+
+            {/* Why Us Pages */}
+
+            <Route
+                path="/fast-delivery"
+                element={
+                    <StoreLayout>
+                        <FastDelivery />
+                    </StoreLayout>
+                }
+            />
+
+            <Route
+                path="/authentic-products"
+                element={
+                    <StoreLayout>
+                        <AuthenticProducts />
+                    </StoreLayout>
+                }
+            />
+
+            <Route
+                path="/support"
+                element={
+                    <StoreLayout>
+                        <Support24 />
+                    </StoreLayout>
+                }
+            />
+
+            <Route
+                path="/pharmacists"
+                element={
+                    <StoreLayout>
+                        <Pharmacists />
                     </StoreLayout>
                 }
             />
@@ -142,6 +183,16 @@ export default function StoreRoutes() {
                 }
             />
 
+            <Route
+                path="/patients/:id/edit"
+                element={
+                    <ProtectedRoute>
+                        <StoreLayout>
+                            <EditPatient />
+                        </StoreLayout>
+                    </ProtectedRoute>
+                }
+            />
 
             <Route
                 path="/account"
@@ -204,18 +255,6 @@ export default function StoreRoutes() {
                     <ProtectedRoute>
                         <StoreLayout>
                             <HealthProfile />
-                        </StoreLayout>
-                    </ProtectedRoute>
-                }
-            />
-
-
-            <Route
-                path="/patients/:id/edit"
-                element={
-                    <ProtectedRoute>
-                        <StoreLayout>
-                            <EditPatient />
                         </StoreLayout>
                     </ProtectedRoute>
                 }

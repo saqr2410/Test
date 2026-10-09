@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import {
+    useEffect,
+    useState
+} from "react";
 
 import {
     getProducts
 } from "../services/products/adminProductService";
-
 
 
 export default function useAdminProducts() {
@@ -15,65 +17,42 @@ export default function useAdminProducts() {
 
 
 
-    useEffect(() => {
-
-
-        loadProducts();
-
-
-    }, []);
-
-
-
-
     const loadProducts = async () => {
-
 
         try {
 
-
             setLoading(true);
-
-
 
             const data = await getProducts();
 
-
-
             setProducts(data);
 
+        } catch (error) {
 
-
-        }
-
-
-        catch(error) {
-
-
-            console.log(
+            console.error(
+                "Load Products Error:",
                 error
             );
 
-
-        }
-
-
-        finally {
-
+        } finally {
 
             setLoading(false);
 
-
         }
-
 
     };
 
 
 
+    useEffect(() => {
+
+        loadProducts();
+
+    }, []);
+
+
 
     return {
-
 
         products,
 
@@ -81,8 +60,6 @@ export default function useAdminProducts() {
 
         reload: loadProducts
 
-
     };
-
 
 }

@@ -1,13 +1,43 @@
 import api from "../../api/axios";
 
 
-// =========================
-// رفع روشتة
-// =========================
+/* ==========================================
+   Get All Prescriptions
+========================================== */
 
-export const uploadPrescription = async (formData) => {
+export const getPrescriptions = async () => {
 
-    const response = await api.post(
+    const { data } = await api.get(
+        "/prescriptions/prescriptions/"
+    );
+
+    return data;
+};
+
+
+/* ==========================================
+   Get Prescription Details
+========================================== */
+
+export const getPrescription = async (id) => {
+
+    const { data } = await api.get(
+        `/prescriptions/prescriptions/${id}/`
+    );
+
+    return data;
+};
+
+
+/* ==========================================
+   Upload + Analyze Prescription
+========================================== */
+
+export const uploadPrescription = async (
+    formData
+) => {
+
+    const { data } = await api.post(
         "/prescriptions/prescriptions/",
         formData,
         {
@@ -17,86 +47,69 @@ export const uploadPrescription = async (formData) => {
         }
     );
 
-    return response.data;
-
+    return data;
 };
 
 
+/* ==========================================
+   Re-analyze Prescription
+========================================== */
 
-// =========================
-// تحليل الروشتة AI
-// =========================
+export const analyzePrescription = async (
+    id
+) => {
 
-export const analyzePrescription = async (id) => {
-
-    const response = await api.post(
+    const { data } = await api.post(
         `/prescriptions/prescriptions/${id}/analyze/`
     );
 
-    return response.data;
-
+    return data;
 };
 
 
+/* ==========================================
+   Approve Prescription
+========================================== */
 
-// =========================
-// جلب كل الروشتات
-// =========================
+export const approvePrescription = async (
+    id
+) => {
 
-export const getPrescriptions = async () => {
-
-    const response = await api.get(
-        "/prescriptions/prescriptions/"
-    );
-
-    return response.data;
-
-};
-
-
-
-// =========================
-// جلب روشتة واحدة
-// =========================
-
-export const getPrescription = async (id) => {
-
-    const response = await api.get(
-        `/prescriptions/prescriptions/${id}/`
-    );
-
-    return response.data;
-
-};
-
-
-
-// =========================
-// قبول الروشتة
-// =========================
-
-export const approvePrescription = async (id) => {
-
-    const response = await api.post(
+    const { data } = await api.post(
         `/prescriptions/prescriptions/${id}/approve/`
     );
 
-    return response.data;
-
+    return data;
 };
 
 
+/* ==========================================
+   Reject Prescription
+========================================== */
 
-// =========================
-// رفض الروشتة
-// =========================
+export const rejectPrescription = async (
+    id
+) => {
 
-export const rejectPrescription = async (id) => {
-
-    const response = await api.post(
+    const { data } = await api.post(
         `/prescriptions/prescriptions/${id}/reject/`
     );
 
-    return response.data;
+    return data;
+};
 
+
+/* ==========================================
+   Delete Prescription
+========================================== */
+
+export const deletePrescription = async (
+    id
+) => {
+
+    const { data } = await api.delete(
+        `/prescriptions/prescriptions/${id}/`
+    );
+
+    return data;
 };

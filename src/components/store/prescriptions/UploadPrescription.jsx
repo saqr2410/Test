@@ -1,50 +1,56 @@
-import React, { useState } from "react";
+import React, {
+    useState,
+} from "react";
 
 import toast from "react-hot-toast";
 
 import {
     uploadPrescription,
-    analyzePrescription
 } from "../../../services/prescriptions/prescriptionService";
 
-import { useNavigate } from "react-router-dom";
+import {
+    useNavigate,
+} from "react-router-dom";
 
-import { useAuth } from "../../../contexts/AuthContext";
+import {
+    useAuth,
+} from "../../../contexts/AuthContext";
 
 
 function UploadPrescription({
 
     patient,
 
-    onFinished
+    onFinished,
 
 }) {
 
+    const [
+        image,
+        setImage,
+    ] = useState(null);
 
-    const [image, setImage] = useState(null);
-
-    const [loading, setLoading] = useState(false);
+    const [
+        loading,
+        setLoading,
+    ] = useState(false);
 
 
     const navigate = useNavigate();
 
-    const { user, loading: authLoading } = useAuth();
-
+    const {
+        user,
+        loading: authLoading,
+    } = useAuth();
 
 
     const submit = async () => {
 
-
-        // استنى تحميل حالة المستخدم
         if (authLoading) {
-
             return;
-
         }
 
 
-
-        // لو مفيش تسجيل دخول
         if (!user) {
 
             toast.error(
@@ -54,40 +60,35 @@ function UploadPrescription({
             navigate("/login");
 
             return;
-
         }
 
 
-
-        // لو مفيش صورة
         if (!image) {
 
             toast.error(
-                "اختر صورة"
+                "اختر صورة الروشتة أولاً"
             );
 
             return;
-
         }
-
 
 
         try {
 
-
             setLoading(true);
-
 
 
             const form = new FormData();
 
 
+            if (patient) {
 
-            form.append(
-                "patient",
-                patient
-            );
+                form.append(
+                    "patient",
+                    patient
+                );
 
+            }
 
 
             form.append(
@@ -96,31 +97,19 @@ function UploadPrescription({
             );
 
 
-
-            const prescription =
+            /*
+             * Upload + Gemini Analysis
+             * يتم في Request واحد
+             */
+            const result =
                 await uploadPrescription(
                     form
                 );
 
 
-
             toast.success(
-                "تم رفع الروشتة"
+                "تم تحليل الروشتة بنجاح"
             );
-
-
-
-            const result =
-                await analyzePrescription(
-                    prescription.id
-                );
-
-
-
-            toast.success(
-                "تم تحليل الروشتة"
-            );
-
 
 
             if (onFinished) {
@@ -130,60 +119,50 @@ function UploadPrescription({
             }
 
 
+        } catch (error) {
 
-        }
-
-        catch (error) {
-
-
-            console.log(error);
-
+            console.error(
+                "Prescription Error:",
+                error
+            );
 
 
-            if (error.response?.status === 401) {
-
+            if (
+                error.response?.status === 401
+            ) {
 
                 toast.error(
                     "يجب تسجيل الدخول أولاً"
                 );
 
-
                 navigate("/login");
 
-
                 return;
-
             }
 
 
+            const message =
+                error.response?.data?.detail;
+
 
             toast.error(
+                message ||
                 "حدث خطأ أثناء تحليل الروشتة"
             );
 
 
-        }
-
-
-        finally {
-
+        } finally {
 
             setLoading(false);
 
-
         }
 
-
     };
-
-
-
 
 
     return (
 
         <div className="bg-white p-6 rounded-xl shadow">
-
 
             <h2 className="text-2xl font-bold mb-5">
 
@@ -192,17 +171,21 @@ function UploadPrescription({
             </h2>
 
 
-
             <input
 
                 type="file"
 
                 accept="image/*"
 
-                onChange={(e)=>{
+                disabled={loading}
+
+                onChange={(event) => {
+
+                    const selectedFile =
+                        event.target.files?.[0];
 
                     setImage(
-                        e.target.files[0]
+                        selectedFile || null
                     );
 
                 }}
@@ -212,40 +195,57 @@ function UploadPrescription({
             />
 
 
+            {
+                image && (
+
+                    <p className="text-sm text-gray-600 mb-4">
+
+                        تم اختيار:
+
+                        {" "}
+
+                        {image.name}
+
+                    </p>
+
+                )
+            }
+
 
             <button
 
                 onClick={submit}
 
-                disabled={loading}
+                disabled={
+                    loading ||
+                    authLoading
+                }
 
                 className="
                     bg-green-600
                     hover:bg-green-700
+                    disabled:bg-gray-400
+                    disabled:cursor-not-allowed
                     text-white
                     px-6
                     py-3
                     rounded-lg
+                    transition
                 "
 
             >
 
                 {
                     loading
-                    ?
-                    "جاري التحليل..."
-                    :
-                    "رفع وتحليل"
+                        ? "جاري قراءة وتحليل الروشتة..."
+                        : "رفع وتحليل الروشتة"
                 }
 
-
             </button>
-
 
         </div>
 
     );
-
 
 }
 

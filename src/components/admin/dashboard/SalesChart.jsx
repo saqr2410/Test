@@ -1,76 +1,87 @@
 import {
-    LineChart,
-    Line,
-    ResponsiveContainer,
-    CartesianGrid,
-    Tooltip,
-    XAxis,
-    YAxis
-} from "recharts";
+    BarChart3
+} from "lucide-react";
 
-const data = [
-
-    { month: "Jan", sales: 12000 },
-
-    { month: "Feb", sales: 18000 },
-
-    { month: "Mar", sales: 14000 },
-
-    { month: "Apr", sales: 22000 },
-
-    { month: "May", sales: 26000 },
-
-    { month: "Jun", sales: 30000 },
-
-    { month: "Jul", sales: 28000 },
-
-];
-
-export default function SalesChart() {
+export default function SalesChart({
+    data = []
+}) {
 
     return (
 
-        <div className="bg-white rounded-2xl shadow p-6 h-[400px]">
+        <div
+            className="
+                bg-white
+                rounded-3xl
+                shadow-sm
+                border border-gray-100
+                p-6
+            "
+        >
 
-            <h2 className="text-xl font-bold mb-6">
+            <div className="flex items-center gap-3 mb-6">
 
-                Sales Overview
+                <div
+                    className="
+                        w-11
+                        h-11
+                        rounded-xl
+                        bg-purple-50
+                        text-[#5B2A86]
+                        flex
+                        items-center
+                        justify-center
+                    "
+                >
+                    <BarChart3 size={21} />
+                </div>
 
-            </h2>
+                <div>
 
-            <ResponsiveContainer
-                width="100%"
-                height="90%"
-            >
+                    <h2 className="text-xl font-black">
+                        المبيعات
+                    </h2>
 
-                <LineChart data={data}>
+                    <p className="text-sm text-gray-400">
+                        نظرة عامة على المبيعات
+                    </p>
 
-                    <CartesianGrid strokeDasharray="3 3" />
+                </div>
 
-                    <XAxis dataKey="month" />
+            </div>
 
-                    <YAxis />
 
-                    <Tooltip />
+            {data.length === 0 ? (
 
-                    <Line
+                <div
+                    className="
+                        h-[280px]
+                        flex
+                        flex-col
+                        items-center
+                        justify-center
+                        text-gray-400
+                    "
+                >
 
-                        type="monotone"
-
-                        dataKey="sales"
-
-                        stroke="#2563eb"
-
-                        strokeWidth={4}
-
+                    <BarChart3
+                        size={50}
+                        className="mb-4 text-gray-300"
                     />
 
-                </LineChart>
+                    <p>
+                        لا توجد بيانات مبيعات كافية لعرض الرسم البياني
+                    </p>
 
-            </ResponsiveContainer>
+                </div>
+
+            ) : (
+
+                <div>
+                    {/* هنرجع Recharts هنا لما نضيف sales_chart في Backend */}
+                </div>
+
+            )}
 
         </div>
-
     );
-
 }

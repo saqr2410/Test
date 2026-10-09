@@ -1,12 +1,10 @@
 import { useEffect, useState } from "react";
 
 import {
-
     getCategories,
-
     getUnits
-
 } from "../services/products/categoryService";
+
 
 export default function useProductMeta() {
 
@@ -16,22 +14,16 @@ export default function useProductMeta() {
 
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-
-        load();
-
-    }, []);
 
     async function load() {
 
         try {
 
+            setLoading(true);
+
             const [
-
                 categoriesData,
-
                 unitsData
-
             ] = await Promise.all([
 
                 getCategories(),
@@ -40,9 +32,19 @@ export default function useProductMeta() {
 
             ]);
 
+
             setCategories(categoriesData);
 
             setUnits(unitsData);
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Product Meta Error:",
+                error
+            );
 
         }
 
@@ -54,13 +56,23 @@ export default function useProductMeta() {
 
     }
 
+
+    useEffect(() => {
+
+        load();
+
+    }, []);
+
+
     return {
 
         categories,
 
         units,
 
-        loading
+        loading,
+
+        reload: load
 
     };
 

@@ -1,157 +1,296 @@
-﻿import React, {
+﻿import {
     createContext,
     useContext,
     useEffect,
-    useState
+    useState,
 } from "react";
-
 
 import api from "../api/axios";
 
 import toast from "react-hot-toast";
 
-import {
-    addCartItem
-} from "../services/cart/cartService";
+
+const AuthContext =
+    createContext(null);
 
 
+/* ==========================================
+   Normalize User
+========================================== */
 
-const AuthContext = createContext();
+const normalizeUser = (userData) => {
 
+    if (!userData) {
+        return null;
+    }
 
+    return {
+        ...userData,
 
-
-
-export const AuthProvider = ({ children }) => {
-
-
-
-    const [user, setUser] = useState(null);
-
-    const [loading, setLoading] = useState(true);
-
-
-
-
-
-
-
-    // =========================
-    // Sync Local Cart To Backend
-    // =========================
-
-    const syncCart = async()=>{
+        role: String(
+            userData.role || ""
+        )
+            .trim()
+            .toUpperCase(),
+    };
+};
 
 
-        const savedCart =
-            localStorage.getItem("cart");
+/* ==========================================
+   Extract API Errors
+========================================== */
+
+const getApiErrors = (error) => {
+
+    const data =
+        error?.response?.data;
 
 
+    if (!data) {
 
-        if(!savedCart){
+        return {
+            general:
+                "حدث خطأ في الاتصال بالخادم."
+        };
 
-            return;
-
-        }
-
-
-
-        const cart =
-            JSON.parse(savedCart);
+    }
 
 
-
-        if(cart.length === 0){
-
-            return;
-
-        }
+    const errors = {};
 
 
+    if (data.username) {
+
+        errors.username =
+            Array.isArray(data.username)
+                ? data.username[0]
+                : data.username;
+
+    }
 
 
-        try{
+    if (data.email) {
+
+        errors.email =
+            Array.isArray(data.email)
+                ? data.email[0]
+                : data.email;
+
+    }
 
 
-            for(const item of cart){
+    if (data.phone) {
+
+        errors.phone =
+            Array.isArray(data.phone)
+                ? data.phone[0]
+                : data.phone;
+
+    }
 
 
-                await addCartItem(
+    if (data.password) {
 
-                    item.id,
+        errors.password =
+            Array.isArray(data.password)
+                ? data.password[0]
+                : data.password;
 
-                    item.quantity
-
-                );
-
-
-            }
+    }
 
 
+    if (data.password2) {
 
-            console.log(
-                "Cart synced"
+        errors.password2 =
+            Array.isArray(data.password2)
+                ? data.password2[0]
+                : data.password2;
+
+    }
+
+
+    if (data.confirm_password) {
+
+        errors.confirm_password =
+            Array.isArray(
+                data.confirm_password
+            )
+                ? data.confirm_password[0]
+                : data.confirm_password;
+
+    }
+
+
+    if (data.old_password) {
+
+        errors.old_password =
+            Array.isArray(
+                data.old_password
+            )
+                ? data.old_password[0]
+                : data.old_password;
+
+    }
+
+
+    if (data.detail) {
+
+        errors.general =
+            Array.isArray(data.detail)
+                ? data.detail[0]
+                : data.detail;
+
+    }
+
+
+    if (data.non_field_errors) {
+
+        errors.general =
+            Array.isArray(
+                data.non_field_errors
+            )
+                ? data.non_field_errors[0]
+                : data.non_field_errors;
+
+    }
+
+
+    if (
+        Object.keys(errors).length === 0
+    ) {
+
+        errors.general =
+            "حدث خطأ، حاول مرة أخرى.";
+
+    }
+
+
+    return errors;
+};
+
+
+/* ==========================================
+   Auth Provider
+========================================== */
+
+export const AuthProvider = ({
+    children,
+}) => {
+
+    const [user, setUser] =
+        useState(null);
+
+
+    /*
+     * Loading for login/register
+     */
+    const [loading, setLoading] =
+        useState(false);
+
+
+    /*
+     * Loading only while checking
+     * the existing access token.
+     */
+    const [initializing, setInitializing] =
+        useState(true);
+
+
+    /* ==========================================
+       Save Auth Data
+    ========================================== */
+
+    const saveAuthData = (
+        access,
+        refresh,
+        userData
+    ) => {
+
+        localStorage.setItem(
+            "access_token",
+            access
+        );
+
+
+        localStorage.setItem(
+            "refresh_token",
+            refresh
+        );
+
+
+        const normalizedUser =
+            normalizeUser(
+                userData
             );
 
 
-        }
+        localStorage.setItem(
+            "user",
+            JSON.stringify(
+                normalizedUser
+            )
+        );
 
 
-        catch(error){
+        setUser(
+            normalizedUser
+        );
 
 
-            console.log(
-                "Cart sync error",
-                error
-            );
+        return normalizedUser;
+    };
 
 
-        }
+    /* ==========================================
+       Clear Auth Data
+    ========================================== */
 
+    const clearAuthData = () => {
+
+        localStorage.removeItem(
+            "access_token"
+        );
+
+
+        localStorage.removeItem(
+            "refresh_token"
+        );
+
+
+        localStorage.removeItem(
+            "user"
+        );
+
+
+        setUser(null);
 
     };
 
 
+    /* ==========================================
+       Load Current User
+    ========================================== */
 
+    useEffect(() => {
 
+        const loadUser = async () => {
 
-
-
-
-
-    // =========================
-    // Load Current User
-    // =========================
-
-    useEffect(()=>{
-
-
-        const loadUser = async()=>{
-
-
-            const token =
+            const accessToken =
                 localStorage.getItem(
                     "access_token"
                 );
 
 
+            if (!accessToken) {
 
-            if(!token){
-
-
-                setLoading(false);
+                setInitializing(false);
 
                 return;
-
 
             }
 
 
-
-
-
-            try{
-
+            try {
 
                 const response =
                     await api.get(
@@ -159,467 +298,306 @@ export const AuthProvider = ({ children }) => {
                     );
 
 
-
-                console.log(
-                    "CURRENT USER =>",
-                    response.data
-                );
-
-                console.log("ROLE =>", response.data.role);
-
+                const normalizedUser =
+                    normalizeUser(
+                        response.data
+                    );
 
 
                 setUser(
-                    response.data
+                    normalizedUser
                 );
-
 
 
                 localStorage.setItem(
-
                     "user",
-
                     JSON.stringify(
-                        response.data
+                        normalizedUser
                     )
-
                 );
 
 
+            } catch (error) {
 
-
-
-                await syncCart();
-
-
-
-            }
-
-
-            catch(error){
-
-
-                console.log(
-                    "LOAD USER ERROR",
+                console.error(
+                    "LOAD USER ERROR:",
+                    error?.response?.data ||
                     error
                 );
 
 
+                clearAuthData();
 
-                localStorage.removeItem(
-                    "access_token"
-                );
+            } finally {
 
-
-                localStorage.removeItem(
-                    "refresh_token"
-                );
-
-
-                localStorage.removeItem(
-                    "user"
-                );
-
-
-                setUser(null);
-
-
+                setInitializing(false);
 
             }
-
-
-
-            finally{
-
-
-                setLoading(false);
-
-
-            }
-
-
 
         };
 
 
-
         loadUser();
 
+    }, []);
 
 
-    },[]);
+    /* ==========================================
+       Login
+    ========================================== */
 
-
-
-
-
-
-
-
-
-
-
-
-    // =========================
-    // Login
-    // =========================
-
-    const login = async(
+    const login = async (
         username,
         password
-    )=>{
-
+    ) => {
 
         setLoading(true);
 
 
-
-        try{
-
+        try {
 
             const response =
                 await api.post(
-
                     "/users/login/",
-
                     {
                         username,
-                        password
+                        password,
                     }
-
                 );
 
 
+            const {
+                access,
+                refresh,
+                user: userData,
+            } = response.data;
 
 
+            if (
+                !access ||
+                !refresh ||
+                !userData
+            ) {
 
-
-
-            localStorage.setItem(
-
-                "access_token",
-
-                response.data.access
-
-            );
-
-
-
-            localStorage.setItem(
-
-                "refresh_token",
-
-                response.data.refresh
-
-            );
-
-
-
-
-
-
-
-
-            // مهم جدا
-            // نجيب بيانات المستخدم كاملة
-            // ومنها role
-
-            const userResponse =
-                await api.get(
-                    "/users/me/"
+                throw new Error(
+                    "Invalid login response."
                 );
 
+            }
 
 
-
-
-            setUser(
-                userResponse.data
-            );
-
-
-
-
-
-            localStorage.setItem(
-
-                "user",
-
-                JSON.stringify(
-                    userResponse.data
-                )
-
-            );
-
-
-
-
-
-
-
-            await syncCart();
-
-
-
-
+            const normalizedUser =
+                saveAuthData(
+                    access,
+                    refresh,
+                    userData
+                );
 
 
             toast.success(
-
                 "تم تسجيل الدخول بنجاح"
-
             );
 
 
+            return {
+                user: normalizedUser,
+                errors: null,
+            };
 
 
+        } catch (error) {
 
-            return userResponse.data;
-
-
-
-        }
-
-
-
-        catch(error){
-
+            console.error(
+                "LOGIN ERROR:",
+                error?.response?.data ||
+                error
+            );
 
 
             console.log(
-
-                "LOGIN ERROR",
-
-                error.response?.data
-
+                "LOGIN API ERROR:",
+                JSON.stringify(
+                    error?.response?.data,
+                    null,
+                    2
+                )
             );
 
 
-
-            toast.error(
-
-                "بيانات الدخول غير صحيحة"
-
-            );
+            const errors =
+                getApiErrors(error);
 
 
-
-            return null;
-
-
-
-        }
+            return {
+                user: null,
+                errors,
+            };
 
 
-
-        finally{
-
+        } finally {
 
             setLoading(false);
 
-
         }
-
-
 
     };
 
 
+    /* ==========================================
+       Register
+    ========================================== */
 
-
-
-
-
-
-
-    // =========================
-    // Register
-    // =========================
-
-
-    const register = async(data)=>{
-
+    const register = async (
+        data
+    ) => {
 
         setLoading(true);
 
 
-
-        try{
-
+        try {
 
             await api.post(
-
                 "/users/register/",
-
                 data
-
             );
-
 
 
             toast.success(
-
-                "تم إنشاء الحساب"
-
+                "تم إنشاء الحساب بنجاح"
             );
 
 
+            const result =
+                await login(
+                    data.username,
+                    data.password
+                );
 
-            return await login(
 
-                data.username,
+            return result;
 
-                data.password
 
+        } catch (error) {
+
+            console.error(
+                "REGISTER ERROR:",
+                error?.response?.data ||
+                error
             );
 
 
-
-        }
-
-
-
-        catch(error){
+            const errors =
+                getApiErrors(error);
 
 
-
-            console.log(
-
-                error.response?.data
-
-            );
+            return {
+                user: null,
+                errors,
+            };
 
 
-
-            toast.error(
-
-                "خطأ أثناء إنشاء الحساب"
-
-            );
-
-
-
-            return null;
-
-
-        }
-
-
-
-        finally{
-
+        } finally {
 
             setLoading(false);
 
-
         }
-
 
     };
 
 
+    /* ==========================================
+       Logout
+    ========================================== */
 
+    const logout = () => {
 
-
-
-
-
-
-    // =========================
-    // Logout
-    // =========================
-
-
-    const logout = ()=>{
-
-
-
-        localStorage.removeItem(
-
-            "access_token"
-
-        );
-
-
-        localStorage.removeItem(
-
-            "refresh_token"
-
-        );
-
-
-        localStorage.removeItem(
-
-            "user"
-
-        );
-
-
-
-        setUser(null);
-
-
-
+        clearAuthData();
 
 
         toast.success(
-
             "تم تسجيل الخروج"
-
         );
-
-
 
     };
 
 
+    /* ==========================================
+       Context
+    ========================================== */
+
+    const value = {
+
+        user,
+
+        loading,
+
+        initializing,
+
+        login,
+
+        register,
+
+        logout,
 
 
+        role:
+            user?.role,
 
 
+        isAuthenticated:
+            Boolean(user),
 
+
+        isOwner:
+            user?.role === "OWNER",
+
+
+        isManager:
+            user?.role === "MANAGER",
+
+
+        isPharmacist:
+            user?.role === "PHARMACIST",
+
+
+        isCashier:
+            user?.role === "CASHIER",
+
+
+        isAccountant:
+            user?.role === "ACCOUNTANT",
+
+
+        isDelivery:
+            user?.role === "DELIVERY",
+
+
+        isCustomer:
+            user?.role === "CUSTOMER",
+
+    };
 
 
     return (
 
-
         <AuthContext.Provider
-            value={{
-                user,
-                loading,
-                login,
-                register,
-                logout,
-
-                role: user?.role,
-                isAuthenticated: !!user,
-
-                isOwner: user?.role === "OWNER",
-                isManager: user?.role === "MANAGER",
-                isPharmacist: user?.role === "PHARMACIST",
-                isCashier: user?.role === "CASHIER",
-                isAccountant: user?.role === "ACCOUNTANT",
-                isDelivery: user?.role === "DELIVERY",
-                isCustomer: user?.role === "CUSTOMER",
-            }}
+            value={value}
         >
+
             {children}
+
         </AuthContext.Provider>
 
-
-
     );
-
-
 
 };
 
 
+/* ==========================================
+   Hook
+========================================== */
 
-
-
-
-
-
-
-export const useAuth = ()=>useContext(AuthContext);
+export const useAuth = () =>
+    useContext(
+        AuthContext
+    );

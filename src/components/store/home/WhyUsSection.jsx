@@ -1,127 +1,271 @@
 import {
-
-Truck,
-
-Shield,
-
-Clock3,
-
-BadgeCheck
-
+    Truck,
+    Shield,
+    Clock3,
+    BadgeCheck
 } from "lucide-react";
 
-const data=[
+import {
+    Link
+} from "react-router-dom";
 
-{
 
-icon:Truck,
+// =========================================================
+// Why Us Data
+// =========================================================
 
-title:"توصيل سريع",
+const data = [
 
-desc:"حتى باب المنزل"
+    {
+        icon: Truck,
+        title: "توصيل سريع",
+        desc: "حتى باب المنزل",
+        path: "/fast-delivery"
+    },
 
-},
+    {
+        icon: Shield,
+        title: "منتجات أصلية",
+        desc: "معتمدة 100%",
+        path: "/authentic-products"
+    },
 
-{
+    {
+        icon: Clock3,
+        title: "24/7",
+        desc: "خدمة طوال اليوم",
+        path: "/support"
+    },
 
-icon:Shield,
-
-title:"منتجات أصلية",
-
-desc:"معتمدة 100%"
-
-},
-
-{
-
-icon:Clock3,
-
-title:"24/7",
-
-desc:"خدمة طوال اليوم"
-
-},
-
-{
-
-icon:BadgeCheck,
-
-title:"صيادلة متخصصون",
-
-desc:"استشارات مجانية"
-
-}
+    {
+        icon: BadgeCheck,
+        title: "صيادلة متخصصون",
+        desc: "استشارات مجانية",
+        path: "/pharmacists"
+    }
 
 ];
 
-export default function WhyUsSection(){
 
-return(
+// =========================================================
+// Why Us Section
+// =========================================================
 
-<section className="py-24 bg-[#F8F5FC]">
+export default function WhyUsSection() {
 
-<div className="max-w-7xl mx-auto px-6">
+    return (
 
-<h2 className="text-center text-4xl font-black text-[#5B2A86]">
+        <section
+            className="
+                py-24
+                bg-[#F8F5FC]
+            "
+        >
 
-لماذا نحن؟
+            <div
+                className="
+                    max-w-7xl
+                    mx-auto
+                    px-6
+                "
+            >
 
-</h2>
+                {/* =================================================
+                    Section Title
+                ================================================= */}
 
-<div className="grid lg:grid-cols-4 gap-8 mt-16">
+                <h2
+                    className="
+                        text-center
 
-{
+                        text-3xl
+                        md:text-4xl
 
-data.map((item,index)=>{
+                        font-black
 
-const Icon=item.icon;
+                        text-[#5B2A86]
+                    "
+                >
+                    لماذا نحن؟
+                </h2>
 
-return(
 
-<div
+                {/* =================================================
+                    Cards
+                ================================================= */}
 
-key={index}
+                <div
+                    className="
+                        flex
+                        flex-wrap
+                        justify-center
+                        gap-8
 
-className="bg-white rounded-3xl shadow-xl p-8 text-center"
+                        mt-16
+                    "
+                >
 
->
+                    {data.map(
+                        (item, index) => {
 
-<div
+                            const Icon =
+                                item.icon;
 
-className="w-20 h-20 rounded-full bg-[#5B2A86] text-white flex items-center justify-center mx-auto"
 
->
+                            return (
 
-<Icon size={35}/>
+                                <Link
+                                    key={index}
+                                    to={item.path}
+                                    className="
+                                        group
 
-</div>
+                                        w-full
+                                        sm:w-[calc(50%-16px)]
+                                        lg:w-[calc(25%-24px)]
 
-<h3 className="font-bold text-xl mt-6">
+                                        max-w-[300px]
 
-{item.title}
+                                        bg-white
 
-</h3>
+                                        rounded-3xl
 
-<p className="text-gray-500 mt-3">
+                                        shadow-lg
 
-{item.desc}
+                                        p-8
 
-</p>
+                                        text-center
 
-</div>
+                                        border
+                                        border-transparent
 
-);
+                                        hover:border-[#5B2A86]
 
-})
+                                        hover:-translate-y-2
 
-}
+                                        hover:shadow-xl
 
-</div>
+                                        transition-all
+                                        duration-300
+                                    "
+                                >
 
-</div>
+                                    {/* =================================================
+                                        Icon
+                                    ================================================= */}
 
-</section>
+                                    <div
+                                        className="
+                                            w-20
+                                            h-20
 
-);
+                                            rounded-full
+
+                                            bg-[#5B2A86]
+                                            text-white
+
+                                            flex
+                                            items-center
+                                            justify-center
+
+                                            mx-auto
+
+                                            transition-all
+                                            duration-300
+
+                                            group-hover:scale-110
+                                            group-hover:shadow-lg
+                                        "
+                                    >
+
+                                        <Icon
+                                            size={35}
+                                            strokeWidth={1.8}
+                                        />
+
+                                    </div>
+
+
+                                    {/* =================================================
+                                        Title
+                                    ================================================= */}
+
+                                    <h3
+                                        className="
+                                            font-bold
+                                            text-xl
+
+                                            mt-6
+
+                                            text-gray-800
+
+                                            group-hover:text-[#5B2A86]
+
+                                            transition-colors
+                                            duration-300
+                                        "
+                                    >
+                                        {item.title}
+                                    </h3>
+
+
+                                    {/* =================================================
+                                        Description
+                                    ================================================= */}
+
+                                    <p
+                                        className="
+                                            text-gray-500
+
+                                            mt-3
+
+                                            leading-6
+                                        "
+                                    >
+                                        {item.desc}
+                                    </p>
+
+
+                                    {/* =================================================
+                                        Click Indicator
+                                    ================================================= */}
+
+                                    <div
+                                        className="
+                                            mt-5
+
+                                            text-sm
+                                            font-bold
+
+                                            text-[#5B2A86]
+
+                                            opacity-0
+
+                                            translate-y-1
+
+                                            group-hover:opacity-100
+                                            group-hover:translate-y-0
+
+                                            transition-all
+                                            duration-300
+                                        "
+                                    >
+                                        اكتشف المزيد ←
+                                    </div>
+
+                                </Link>
+
+                            );
+
+                        }
+                    )}
+
+                </div>
+
+            </div>
+
+        </section>
+
+    );
 
 }

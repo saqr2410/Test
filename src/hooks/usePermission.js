@@ -1,30 +1,56 @@
 import { useAuth } from "../contexts/AuthContext";
 
+export default function usePermission() {
 
-export default function usePermission(){
+    const { user } = useAuth();
 
+    const hasPermission = (permission) => {
 
-    const {user}=useAuth();
-
-
-
-    const hasPermission=(permission)=>{
-
-
-        if(!user){
+        if (!user) {
             return false;
         }
 
+        if (user.role === "OWNER") {
+            return true;
+        }
 
-        return user.permissions?.includes(permission);
-
-
+        return Array.isArray(user.permissions)
+            && user.permissions.includes(permission);
     };
 
+    const hasAnyPermission = (permissions = []) => {
 
+        if (!user) {
+            return false;
+        }
+
+        if (user.role === "OWNER") {
+            return true;
+        }
+
+        return permissions.some(permission =>
+            user.permissions?.includes(permission)
+        );
+    };
+
+    const hasAllPermissions = (permissions = []) => {
+
+        if (!user) {
+            return false;
+        }
+
+        if (user.role === "OWNER") {
+            return true;
+        }
+
+        return permissions.every(permission =>
+            user.permissions?.includes(permission)
+        );
+    };
 
     return {
-        hasPermission
+        hasPermission,
+        hasAnyPermission,
+        hasAllPermissions,
     };
-
 }

@@ -1,158 +1,135 @@
 import api from "../../api/axios";
 
 
+/* ==========================================
+   Admin Orders
+========================================== */
 
-// =========================
-// كل الطلبات (Admin)
-// =========================
+export const getOrders = async (
+    params = {}
+) => {
 
-export const getOrders = async()=>{
-
-    const {data} = await api.get(
-        "/orders/"
-    );
-
-    return data;
-
-};
-
-
-
-
-// =========================
-// طلبات المستخدم الحالي
-// =========================
-
-export const getMyOrders = async()=>{
-
-    const {data} = await api.get(
-        "/orders/my-orders/"
-    );
-
-    return data;
-
-};
-
-
-
-
-// =========================
-// جلب طلب واحد
-// =========================
-
-export const getOrder = async(id)=>{
-
-    const {data} = await api.get(
-        `/orders/${id}/`
-    );
-
-    return data;
-
-};
-
-
-
-
-// =========================
-// تفاصيل الطلب
-// =========================
-
-export const getOrderDetails = async(id)=>{
-
-    const {data} = await api.get(
-        `/orders/${id}/`
-    );
-
-    return data;
-
-};
-
-
-
-
-// =========================
-// إنشاء طلب
-// =========================
-
-export const createOrder = async(payload)=>{
-
-    const {data} = await api.post(
+    const { data } = await api.get(
         "/orders/",
-        payload
-    );
-
-    return data;
-
-};
-
-
-
-
-// =========================
-// تحديث الطلب
-// =========================
-
-export const updateOrder = async(id,payload)=>{
-
-    const {data} = await api.patch(
-        `/orders/${id}/`,
-        payload
-    );
-
-    return data;
-
-};
-
-
-
-
-// =========================
-// حذف الطلب
-// =========================
-
-export const deleteOrder = async(id)=>{
-
-    const {data} = await api.delete(
-        `/orders/${id}/`
-    );
-
-    return data;
-
-};
-
-
-
-
-// =========================
-// تغيير حالة الطلب
-// =========================
-
-export const updateOrderStatus = async(id,status)=>{
-
-    const {data} = await api.patch(
-        `/orders/${id}/status/`,
         {
-            status
+            params,
         }
     );
 
     return data;
-
 };
 
 
+/* ==========================================
+   My Orders
+========================================== */
 
+export const getMyOrders = async () => {
 
-// =========================
-// إلغاء الطلب
-// =========================
-
-export const cancelOrder = async(id)=>{
-
-    const {data} = await api.post(
-        `/orders/${id}/cancel/`
+    const { data } = await api.get(
+        "/orders/my-orders/"
     );
 
     return data;
+};
 
+
+/* ==========================================
+   Single Order
+========================================== */
+
+export const getOrder = async (
+    id
+) => {
+
+    const { data } = await api.get(
+        `/orders/${id}/`
+    );
+
+    return data;
+};
+
+
+export const getOrderDetails = async (
+    id
+) => {
+
+    const { data } = await api.get(
+        `/orders/${id}/`
+    );
+
+    return data;
+};
+
+
+/* ==========================================
+   Checkout
+========================================== */
+
+export const createOrder = async (
+    payload
+) => {
+
+    const { data } = await api.post(
+        "/orders/checkout/",
+        payload
+    );
+
+    return data;
+};
+
+
+/* ==========================================
+   Update Status
+========================================== */
+
+export const updateOrderStatus = async (
+    id,
+    status
+) => {
+
+    const { data } = await api.post(
+        `/orders/${id}/update-status/`,
+        {
+            status,
+        }
+    );
+
+    return data;
+};
+
+
+/* ==========================================
+   Cancel Order
+========================================== */
+
+export const cancelOrder = async (
+    id,
+    reason
+) => {
+
+    const { data } = await api.post(
+        `/orders/${id}/cancel/`,
+        {
+            reason,
+        }
+    );
+
+    return data;
+};
+
+
+/* ==========================================
+   Timeline
+========================================== */
+
+export const getOrderTimeline = async (
+    id
+) => {
+
+    const { data } = await api.get(
+        `/orders/${id}/timeline/`
+    );
+
+    return data;
 };

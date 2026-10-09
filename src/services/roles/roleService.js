@@ -1,75 +1,26 @@
 import api from "../../api/axios";
 
-
-
-// جلب الـ Roles
-export const getRoles = async()=>{
-
-    const {data} = await api.get(
-        "/roles/"
-    );
-
+export const getRoles = async () => {
+    const { data } = await api.get("/groups/");
     return data;
-
 };
 
-
-
-
-// إنشاء Role
-export const createRole = async(payload)=>{
-
-    const {data}= await api.post(
-        "/roles/",
-        payload
-    );
-
+export const createRole = async (payload) => {
+    const { data } = await api.post("/groups/", payload);
     return data;
-
 };
 
-
-
-
-
-// تعديل Role
-export const updateRole = async(id,payload)=>{
-
-    const {data}= await api.patch(
-        `/roles/${id}/`,
-        payload
-    );
-
+export const updateRole = async (id, payload) => {
+    const { data } = await api.patch(`/groups/${id}/`, payload);
     return data;
-
 };
 
-
-
-
-
-// حذف Role
-export const deleteRole = async(id)=>{
-
-    const {data}= await api.delete(
-        `/roles/${id}/`
-    );
-
+export const deleteRole = async (id) => {
+    const { data } = await api.delete(`/groups/${id}/`);
     return data;
-
 };
 
-
-
-
-
-// جلب Permissions
-export const getPermissions = async()=>{
-
-    const {data}= await api.get(
-        "/permissions/"
-    );
-
+export const getPermissions = async () => {
+    const { data } = await api.get("/permissions/");
     return data;
-
 };

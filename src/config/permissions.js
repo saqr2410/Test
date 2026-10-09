@@ -47,6 +47,8 @@ export const PERMISSIONS = {
     PRESCRIPTIONS_VIEW: "prescriptions.view",
     PRESCRIPTIONS_UPLOAD: "prescriptions.upload",
     PRESCRIPTIONS_APPROVE: "prescriptions.approve",
+    PRESCRIPTIONS_REJECT: "prescriptions.reject",
+    PRESCRIPTIONS_DELETE: "prescriptions.delete",
 
 
     // Finance
@@ -68,7 +70,7 @@ export const PERMISSIONS = {
     EMPLOYEES_DELETE: "employees.delete",
 
 
-    // Roles & Permissions
+    // Roles
     ROLES_VIEW: "roles.view",
     ROLES_CREATE: "roles.create",
     ROLES_UPDATE: "roles.update",
@@ -77,6 +79,7 @@ export const PERMISSIONS = {
 
     // Notifications
     NOTIFICATIONS_VIEW: "notifications.view",
+    NOTIFICATIONS_CREATE: "notifications.create",
 
 
     // Settings
@@ -89,8 +92,7 @@ export const PERMISSIONS = {
     POS_CREATE: "pos.create",
 
 
-    // Delivery
+    // Orders
     ORDERS_VIEW: "orders.view",
     ORDERS_UPDATE: "orders.update",
-
 };

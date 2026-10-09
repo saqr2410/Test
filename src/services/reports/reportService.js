@@ -1,97 +1,31 @@
 import api from "../../api/axios";
 
-
-
-/*
-==================================================
- Reports Summary
-==================================================
-*/
-
-export const getReportsSummary = async()=>{
-
-
-    const {data} = await api.get(
-        "/reports/summary/"
-    );
-
-
+export const getDashboardReport = async () => {
+    const { data } = await api.get("/reports/dashboard/");
     return data;
-
-
 };
 
-
-
-
-
-
-
-/*
-==================================================
- Sales Report
-==================================================
-*/
-
-export const getSalesReport = async()=>{
-
-
-    const {data} = await api.get(
-        "/reports/sales/"
-    );
-
-
+export const getDailyReports = async () => {
+    const { data } = await api.get("/reports/daily/");
     return data;
-
-
 };
 
-
-
-
-
-
-
-/*
-==================================================
- Best Selling Products
-==================================================
-*/
-
-export const getBestProducts = async()=>{
-
-
-    const {data} = await api.get(
-        "/reports/best-products/"
-    );
-
-
+export const getMonthlyReports = async () => {
+    const { data } = await api.get("/reports/monthly/");
     return data;
-
-
 };
 
-
-
-
-
-
-
-/*
-==================================================
- Low Stock Report
-==================================================
-*/
-
-export const getLowStockReport = async()=>{
-
-
-    const {data} = await api.get(
-        "/reports/low-stock/"
-    );
-
-
+export const getLiveDailyReport = async () => {
+    const { data } = await api.get("/reports/live/daily/");
     return data;
+};
 
+export const getTopProducts = async () => {
+    const { data } = await api.get("/reports/live/top_products/");
+    return data;
+};
 
+export const getLowStockReport = async () => {
+    const { data } = await api.get("/reports/live/low_stock/");
+    return data;
 };

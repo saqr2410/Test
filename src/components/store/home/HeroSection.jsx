@@ -21,7 +21,7 @@ export default function HeroSection() {
 
         <section
 
-        className="
+            className="
         relative
         overflow-hidden
         bg-gradient-to-br
@@ -39,7 +39,7 @@ export default function HeroSection() {
 
                 <div
 
-                className="
+                    className="
                 absolute
                 w-96
                 h-96
@@ -56,7 +56,7 @@ export default function HeroSection() {
 
                 <div
 
-                className="
+                    className="
                 absolute
                 w-[500px]
                 h-[500px]
@@ -80,7 +80,7 @@ export default function HeroSection() {
 
             <div
 
-            className="
+                className="
             relative
             max-w-7xl
             mx-auto
@@ -95,7 +95,7 @@ export default function HeroSection() {
 
                 <div
 
-                className="
+                    className="
                 grid
                 lg:grid-cols-2
                 gap-14
@@ -118,7 +118,7 @@ export default function HeroSection() {
 
                         <span
 
-                        className="
+                            className="
                         inline-flex
                         items-center
                         gap-2
@@ -133,10 +133,9 @@ export default function HeroSection() {
                         >
 
 
-                            <Sparkles size={16}/>
 
 
-                            صيدلية ذكية   
+                            صيدلية ذكية
 
 
                         </span>
@@ -148,7 +147,7 @@ export default function HeroSection() {
 
                         <h1
 
-                        className="
+                            className="
                         mt-8
                         text-5xl
                         lg:text-7xl
@@ -160,7 +159,7 @@ export default function HeroSection() {
 
                             صحتك...
 
-                            <br/>
+                            <br />
 
                             بين إيديك
 
@@ -175,7 +174,7 @@ export default function HeroSection() {
 
                         <p
 
-                        className="
+                            className="
                         mt-8
                         text-lg
                         text-white/90
@@ -202,7 +201,7 @@ export default function HeroSection() {
 
                         <div
 
-                        className="
+                            className="
                         flex
                         flex-wrap
                         gap-5
@@ -220,9 +219,9 @@ export default function HeroSection() {
 
                             <Link
 
-                            to="/products"
+                                to="/products"
 
-                            className="
+                                className="
                             bg-white
                             text-[#5B2A86]
                             px-8
@@ -243,7 +242,7 @@ export default function HeroSection() {
                                 تصفح المنتجات
 
 
-                                <ArrowLeft size={18}/>
+                                <ArrowLeft size={18} />
 
 
                             </Link>
@@ -261,9 +260,9 @@ export default function HeroSection() {
 
                             <Link
 
-                            to="/prescriptions/upload"
+                                to="/prescriptions/upload"
 
-                            className="
+                                className="
                             border
                             border-white
                             text-white
@@ -281,7 +280,7 @@ export default function HeroSection() {
                             >
 
 
-                                <Upload size={18}/>
+                                <Upload size={18} />
 
 
                                 رفع روشتة
@@ -303,9 +302,9 @@ export default function HeroSection() {
 
                             <Link
 
-                            to="/patients/create"
+                                to="/patients/create"
 
-                            className="
+                                className="
                             border
                             border-white
                             text-white
@@ -323,7 +322,7 @@ export default function HeroSection() {
                             >
 
 
-                                <UserPlus size={18}/>
+                                <UserPlus size={18} />
 
 
                                 إنشاء ملف صحي
@@ -350,7 +349,7 @@ export default function HeroSection() {
 
                         <div
 
-                        className="
+                            className="
                         grid
                         grid-cols-3
                         gap-5
@@ -365,7 +364,7 @@ export default function HeroSection() {
 
                             <div
 
-                            className="
+                                className="
                             bg-white/10
                             backdrop-blur
                             rounded-2xl
@@ -374,7 +373,7 @@ export default function HeroSection() {
 
                             >
 
-                                <Truck className="mb-3"/>
+                                <Truck className="mb-3" />
 
 
                                 <h3 className="font-bold">
@@ -395,7 +394,7 @@ export default function HeroSection() {
 
                             <div
 
-                            className="
+                                className="
                             bg-white/10
                             backdrop-blur
                             rounded-2xl
@@ -404,7 +403,7 @@ export default function HeroSection() {
 
                             >
 
-                                <ShieldCheck className="mb-3"/>
+                                <ShieldCheck className="mb-3" />
 
 
                                 <h3 className="font-bold">
@@ -432,7 +431,7 @@ export default function HeroSection() {
 
                             <div
 
-                            className="
+                                className="
                             bg-white/10
                             backdrop-blur
                             rounded-2xl
@@ -441,7 +440,7 @@ export default function HeroSection() {
 
                             >
 
-                                <Sparkles className="mb-3"/>
+                                <Sparkles className="mb-3" />
 
 
                                 <h3 className="font-bold">
@@ -608,7 +607,7 @@ export default function HeroSection() {
 
                                 <h2
 
-                                className="
+                                    className="
                                 text-2xl
                                 font-black
                                 text-[#5B2A86]
@@ -623,7 +622,7 @@ export default function HeroSection() {
 
                                 <p
 
-                                className="
+                                    className="
                                 text-gray-500
                                 mt-2
                                 "
@@ -638,7 +637,7 @@ export default function HeroSection() {
 
                                 <p
 
-                                className="
+                                    className="
                                 text-gray-600
                                 leading-7
                                 mt-4
@@ -664,7 +663,7 @@ export default function HeroSection() {
                             {/* Stats */}
 
 
-                            
+
 
 
 

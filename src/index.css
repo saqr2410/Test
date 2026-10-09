@@ -72,3 +72,24 @@ body{
     color:white;
 
 }
+
+/* ================================
+   Admin Sidebar Scrollbar
+================================ */
+
+aside::-webkit-scrollbar {
+    width: 6px;
+}
+
+aside::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+aside::-webkit-scrollbar-thumb {
+    background: #5B2A86;
+    border-radius: 999px;
+}
+
+aside::-webkit-scrollbar-thumb:hover {
+    background: #6C2EA8;
+}

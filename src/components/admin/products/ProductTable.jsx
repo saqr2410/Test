@@ -1,153 +1,79 @@
 import ProductRow from "./ProductRow";
 
-
 export default function ProductTable({
-
-    products = []
-
+    products = [],
+    onEdit,
+    onSuccess
 }) {
-
-
     return (
-
         <div
             className="
-            bg-white
-            rounded-2xl
-            shadow
-            border
-            overflow-hidden
+                bg-white
+                rounded-2xl
+                shadow
+                border
+                overflow-x-auto
             "
         >
-
-
             <table className="w-full">
-
-
                 <thead className="bg-gray-100">
-
-
                     <tr>
-
-
                         <th className="px-6 py-4">
-                            Image
+                            الصورة
                         </th>
 
-
                         <th className="px-6 py-4">
-                            Name
+                            الاسم
                         </th>
 
-
                         <th className="px-6 py-4">
-                            Category
+                            التصنيف
                         </th>
 
-
                         <th className="px-6 py-4">
-                            Price
+                            السعر
                         </th>
 
-
                         <th className="px-6 py-4">
-                            Stock
+                            المخزون
                         </th>
 
-
                         <th className="px-6 py-4">
-                            Status
+                            الحالة
                         </th>
 
-
                         <th className="px-6 py-4">
-                            Actions
+                            الإجراءات
                         </th>
-
-
                     </tr>
-
-
                 </thead>
 
-
-
-
-
                 <tbody>
-
-
-                {
-
-
-                    products.length > 0 ?
-
-
-                    products.map(product => (
-
-
-                        <ProductRow
-
-
-                            key={product.id}
-
-
-                            product={product}
-
-
-                        />
-
-
-                    ))
-
-
-
-                    :
-
-
-                    (
-
-
+                    {products.length > 0 ? (
+                        products.map((product) => (
+                            <ProductRow
+                                key={product.id}
+                                product={product}
+                                onEdit={onEdit}
+                                onSuccess={onSuccess}
+                            />
+                        ))
+                    ) : (
                         <tr>
-
-
                             <td
-
                                 colSpan="7"
-
                                 className="
-                                text-center
-                                py-10
-                                text-gray-500
+                                    text-center
+                                    py-10
+                                    text-gray-500
                                 "
-
                             >
-
-                                No products found
-
-
+                                لا توجد منتجات
                             </td>
-
-
                         </tr>
-
-
-                    )
-
-
-                }
-
-
-
+                    )}
                 </tbody>
-
-
             </table>
-
-
         </div>
-
-
     );
-
 }

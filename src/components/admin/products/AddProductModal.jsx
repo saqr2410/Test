@@ -1,123 +1,127 @@
 import { X } from "lucide-react";
-
 import toast from "react-hot-toast";
-
 import ProductForm from "./ProductForm";
-
-import { createProduct } from "../../../services/products/productService";
+import {
+    createProduct,
+    updateProduct
+} from "../../../services/products/adminProductService";
 
 export default function AddProductModal({
-
     open,
-
-    onClose
-
+    onClose,
+    product = null,
+    onSuccess
 }) {
-
     if (!open) return null;
 
+    const isEdit = !!product;
+
     const handleSubmit = async (data) => {
-
         try {
-
-            await createProduct(data);
-
-            toast.success(
-
-                "Product added successfully."
-
-            );
+            if (isEdit) {
+                await updateProduct(
+                    product.id,
+                    data
+                );
+                toast.success(
+                    "تم تحديث المنتج بنجاح"
+                );
+            } else {
+                await createProduct(data);
+                toast.success(
+                    "تم إضافة المنتج بنجاح"
+                );
+            }
 
             onClose();
 
-        }
-
-        catch (error) {
-
-            console.error(error);
-
-            toast.error(
-
-                "Failed to add product."
-
+            if (onSuccess) {
+                onSuccess();
+            }
+        } catch (error) {
+            console.error(
+                "Product Save Error:",
+                error
             );
-
+            toast.error(
+                isEdit
+                    ? "فشل تحديث المنتج"
+                    : "فشل إضافة المنتج"
+            );
         }
-
     };
 
     return (
-
         <div
             className="
-            fixed
-            inset-0
-            bg-black/40
-            flex
-            justify-center
-            items-center
-            z-50
+                fixed
+                inset-0
+                z-50
+                flex
+                items-center
+                justify-center
+                bg-black/40
+                backdrop-blur-sm
+                p-4
             "
         >
-
             <div
                 className="
-                bg-white
-                rounded-2xl
-                shadow-xl
-                w-full
-                max-w-4xl
+                    bg-white
+                    rounded-2xl
+                    shadow-2xl
+                    w-full
+                    max-w-4xl
+                    max-h-[90vh]
+                    overflow-y-auto
                 "
             >
-
-                {/* Header */}
-
                 <div
                     className="
-                    flex
-                    justify-between
-                    items-center
-                    p-6
-                    border-b
+                        sticky
+                        top-0
+                        z-10
+                        flex
+                        items-center
+                        justify-between
+                        p-6
+                        bg-white
+                        border-b
                     "
                 >
-
-                    <h2 className="text-2xl font-bold">
-
-                        Add Product
-
+                    <h2
+                        className="
+                            text-2xl
+                            font-bold
+                            text-gray-800
+                        "
+                    >
+                        {
+                            isEdit
+                                ? "تعديل المنتج"
+                                : "إضافة منتج جديد"
+                        }
                     </h2>
 
                     <button
-
                         onClick={onClose}
-
-                        className="hover:text-red-500"
-
+                        className="
+                            text-gray-500
+                            hover:text-red-500
+                            transition
+                        "
                     >
-
                         <X />
-
                     </button>
-
                 </div>
-
-                {/* Body */}
 
                 <div className="p-6">
-
                     <ProductForm
-
+                        initialData={product || {}}
                         onSubmit={handleSubmit}
-
                     />
-
                 </div>
-
             </div>
-
         </div>
-
     );
-
 }

@@ -1,75 +1,62 @@
-import { Navigate } from "react-router-dom";
-import { Outlet } from "react-router-dom";
-
+import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 
-
-function Loading() {
-
+function LoadingScreen() {
     return (
-        <div className="min-h-screen flex items-center justify-center">
-            Loading...
+        <div
+            dir="rtl"
+            className="min-h-screen flex items-center justify-center bg-gray-50"
+        >
+            <div className="flex flex-col items-center gap-4">
+
+                <div className="w-10 h-10 border-4 border-purple-200 border-t-[#5B2A86] rounded-full animate-spin" />
+
+                <p className="font-bold text-gray-600">
+                    جاري التحقق من الصلاحيات...
+                </p>
+
+            </div>
         </div>
     );
-
 }
 
-
-
-export default function RoleRoute({ roles = [], children }) {
-
-
-    const { user, loading } = useAuth();
-
-
+export default function RoleRoute({
+    roles = [],
+    children,
+}) {
+    const {
+        user,
+        loading,
+    } = useAuth();
 
     if (loading) {
-
-        return <Loading />;
-
+        return <LoadingScreen />;
     }
 
-
-
     if (!user) {
-
         return (
             <Navigate
                 to="/login"
                 replace
             />
         );
-
     }
 
+    const hasRole =
+        roles.includes(user.role);
 
-
-
-    if (!roles.includes(user.role)) {
-
+    if (!hasRole) {
         return (
             <Navigate
-                to="/"
+                to="/admin/dashboard"
                 replace
             />
         );
-
     }
 
-
-
-
-    // لو مستخدم children
     if (children) {
-
         return children;
-
     }
 
-
-
-    // لو مستخدم Nested Routes
     return <Outlet />;
-
-
 }

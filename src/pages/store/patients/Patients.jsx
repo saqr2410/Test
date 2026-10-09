@@ -1,482 +1,269 @@
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import {
-    useEffect,
-    useState
-} from "react";
-
-
-import {
-    Link
-} from "react-router-dom";
-
-
-import {
+    Activity,
+    Baby,
+    ChevronRight,
+    HeartPulse,
+    Plus,
     Search,
     UserRound,
-    HeartPulse
+    Utensils,
 } from "lucide-react";
+import toast from "react-hot-toast";
 
+import patientService from "../../../services/patients/patientService";
+import Loading from "../../../components/ui/feedback/Loading";
+import EmptyState from "../../../components/ui/feedback/EmptyState";
 
-import { getPatients } from "../../../services/patients/patientService";
+const patientTypes = [
+    {
+        value: "FITNESS",
+        label: "Fitness",
+        icon: Activity,
+    },
+    {
+        value: "NUTRITION",
+        label: "Nutrition",
+        icon: Utensils,
+    },
+    {
+        value: "CHRONIC",
+        label: "Chronic Disease",
+        icon: HeartPulse,
+    },
+    {
+        value: "PREGNANCY",
+        label: "Pregnancy",
+        icon: HeartPulse,
+    },
+    {
+        value: "CHILD",
+        label: "Child",
+        icon: Baby,
+    },
+];
 
-
-
-export default function Patients(){
-
-
-    const [patients,setPatients] = useState([]);
-
-    const [filtered,setFiltered] = useState([]);
-
-    const [search,setSearch] = useState("");
-
-    const [loading,setLoading] = useState(true);
-
-
-
-
-
-    useEffect(()=>{
-
-        loadPatients();
-
-    },[]);
-
-
-
-
-
-    const loadPatients = async()=>{
-
-
-        try{
-
-
-            const data = await getPatients();
-
-
-            const list =
-                data.results || data;
-
-
-            setPatients(list);
-
-            setFiltered(list);
-
-
-        }
-        catch(error){
-
-
-            console.log(
-                "PATIENT LOAD ERROR",
-                error
-            );
-
-
-        }
-        finally{
-
-
-            setLoading(false);
-
-
-        }
-
-
+const getPatientType = (type) =>
+    patientTypes.find((item) => item.value === type) || {
+        label: type || "Health Profile",
+        icon: UserRound,
     };
 
-
-
-
-
-
-    const handleSearch=(value)=>{
-
-
-        setSearch(value);
-
-
-
-        const result = patients.filter(patient=>{
-
-
-            const name =
-            (patient.name || "")
-            .toLowerCase()
-            .includes(value.toLowerCase());
-
-
-
-            const phone =
-            (patient.phone || "")
-            .includes(value);
-
-
-
-            return name || phone;
-
-
-        });
-
-
-
-        setFiltered(result);
-
-
-    };
-
-
-
-
-
-
-
-    if(loading){
-
-
-        return (
-
-            <div className="flex justify-center items-center h-64">
-                جاري تحميل المرضى...
-            </div>
-
-        );
-
+const getGenderLabel = (gender) => {
+    if (gender === "MALE") {
+        return "Male";
     }
 
-
-
-
-
-
-
-    return (
-
-
-        <div
-
-        dir="rtl"
-
-        className="
-        min-h-screen
-        bg-gray-100
-        p-6
-        ">
-
-
-
-
-
-            <div
-
-            className="
-            flex
-            justify-between
-            items-center
-            mb-8
-            ">
-
-
-                <div>
-
-
-                    <h1
-
-                    className="
-                    text-3xl
-                    font-black
-                    text-gray-800
-                    ">
-
-                        المرضى
-
-
-                    </h1>
-
-
-
-                    <p
-
-                    className="
-                    text-gray-500
-                    mt-2
-                    ">
-
-
-                        متابعة ملفات المرضى
-
-
-                    </p>
-
-
-                </div>
-
-
-
-
-
-                <Link
-
-                to="/patients/create"
-
-                className="
-                bg-[#5B2A86]
-                text-white
-                px-6
-                py-3
-                rounded-2xl
-                font-bold
-                ">
-
-                    + إضافة مريض
-
-
-                </Link>
-
-
-            </div>
-
-
-
-
-
-
-
-
-            <div
-
-            className="
-            bg-white
-            rounded-3xl
-            p-5
-            mb-6
-            flex
-            items-center
-            gap-3
-            ">
-
-
-                <Search/>
-
-
-
-
-                <input
-
-
-                value={search}
-
-
-                onChange={
-                    e=>
-                    handleSearch(
-                        e.target.value
-                    )
-                }
-
-
-                placeholder="
-                بحث باسم المريض أو رقم الهاتف
-                "
-
-
-                className="
-                flex-1
-                outline-none
-                "
-                
-                />
-
-
-
-            </div>
-
-
-
-
-
-
-
-
-
-            <div
-
-            className="
-            grid
-            md:grid-cols-3
-            gap-5
-            ">
-
-            {filtered.length === 0 && (
-
-                <div className="col-span-full text-center py-10 text-gray-500">
-
-                    لا يوجد مرضى
-
-                </div>
-
-            )}
-
-
-            {
-
-
-            filtered.map(patient=>(
-
-
-                <div
-
-                key={patient.id}
-
-                className="
-                bg-white
-                rounded-3xl
-                shadow
-                p-6
-                ">
-
-
-
-                    <div
-
-                    className="
-                    flex
-                    items-center
-                    gap-4
-                    mb-5
-                    ">
-
-
-                        <div
-
-                        className="
-                        w-14
-                        h-14
-                        rounded-full
-                        bg-purple-100
-                        flex
-                        items-center
-                        justify-center
-                        ">
-
-
-                            <UserRound
-                            className="text-[#5B2A86]"
-                            />
-
-                        </div>
-
-
-
-
-                        <div>
-
-
-                            <h2
-
-                            className="
-                            font-black
-                            text-lg
-                            ">
-
-                                {patient.name}
-
-                            </h2>
-
-
-
-                            <p
-
-                            className="
-                            text-gray-500
-                            text-sm
-                            ">
-
-                                {patient.phone || "-"}
-
-                            </p>
-
-
-                        </div>
-
-
-                    </div>
-
-
-
-
-
-
-
-                    <div
-
-                    className="
-                    flex
-                    items-center
-                    gap-2
-                    text-sm
-                    text-gray-600
-                    mb-5
-                    ">
-
-
-                        <HeartPulse
-                        size={18}
-                        />
-
-
-                        متابعة صحية
-
-
-                    </div>
-
-
-
-
-
-
-
-                    <Link
-
-                    to={`/patients/${patient.id}/profile`}
-
-                    className="
-                    block
-                    text-center
-                    bg-[#5B2A86]
-                    text-white
-                    py-3
-                    rounded-xl
-                    font-bold
-                    ">
-
-
-                        فتح الملف
-
-
-                    </Link>
-
-
-
-                </div>
-
-
-            ))
-
-
+    if (gender === "FEMALE") {
+        return "Female";
+    }
+
+    return gender || "";
+};
+
+export default function Patients() {
+    const [patients, setPatients] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [search, setSearch] = useState("");
+    const [type, setType] = useState("");
+
+    const loadPatients = async () => {
+        try {
+            setLoading(true);
+
+            const params = {};
+
+            if (search.trim()) {
+                params.search = search.trim();
             }
 
+            if (type) {
+                params.patient_type = type;
+            }
 
+            const data = await patientService.getPatients(params);
 
+            setPatients(
+                Array.isArray(data)
+                    ? data
+                    : Array.isArray(data?.results)
+                        ? data.results
+                        : []
+            );
+        } catch (error) {
+            toast.error(
+                error?.response?.data?.detail ||
+                error?.response?.data?.error ||
+                "Failed to load health profiles."
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            loadPatients();
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [search, type]);
+
+    if (loading && patients.length === 0) {
+        return <Loading />;
+    }
+
+    return (
+        <div
+            dir="ltr"
+            className="space-y-6"
+        >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">
+                        My Health Profiles
+                    </h1>
+
+                    <p className="mt-1 text-sm text-gray-500">
+                        Manage your health profiles and medical information.
+                    </p>
+                </div>
+
+                <Link
+                    to="/patients/create"
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-primary-700"
+                >
+                    <Plus size={18} />
+                    Create Profile
+                </Link>
             </div>
 
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+                <div className="grid gap-4 md:grid-cols-[1fr_220px]">
+                    <div className="relative">
+                        <Search
+                            size={18}
+                            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
 
+                        <input
+                            type="text"
+                            value={search}
+                            onChange={(event) =>
+                                setSearch(event.target.value)
+                            }
+                            placeholder="Search by name or phone..."
+                            className="w-full rounded-xl border border-gray-200 bg-gray-50 py-3 pl-11 pr-4 text-sm outline-none transition focus:border-primary-500 focus:bg-white"
+                        />
+                    </div>
 
+                    <select
+                        value={type}
+                        onChange={(event) =>
+                            setType(event.target.value)
+                        }
+                        className="rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm outline-none transition focus:border-primary-500 focus:bg-white"
+                    >
+                        <option value="">
+                            All Profiles
+                        </option>
 
+                        {patientTypes.map((item) => (
+                            <option
+                                key={item.value}
+                                value={item.value}
+                            >
+                                {item.label}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            </div>
 
+            {loading && patients.length > 0 && (
+                <div className="flex items-center justify-center py-4">
+                    <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-200 border-t-primary-600" />
+                </div>
+            )}
+
+            {!loading && patients.length === 0 ? (
+                <EmptyState
+                    title="No health profiles found"
+                    description="Create your first health profile to get started."
+                />
+            ) : (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {patients.map((patient) => {
+                        const typeInfo = getPatientType(
+                            patient.patient_type
+                        );
+
+                        const Icon = typeInfo.icon;
+
+                        return (
+                            <Link
+                                key={patient.id}
+                                to={`/patients/${patient.id}`}
+                                className="group rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-primary-200 hover:shadow-md"
+                            >
+                                <div className="flex items-start justify-between">
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary-50 text-primary-600">
+                                        <Icon size={23} />
+                                    </div>
+
+                                    <ChevronRight
+                                        size={20}
+                                        className="text-gray-300 transition group-hover:translate-x-1 group-hover:text-primary-600"
+                                    />
+                                </div>
+
+                                <div className="mt-5">
+                                    <h2 className="font-semibold text-gray-900">
+                                        {patient.name || "Unnamed Profile"}
+                                    </h2>
+
+                                    <p className="mt-1 text-sm text-primary-600">
+                                        {patient.patient_type_display ||
+                                            typeInfo.label}
+                                    </p>
+                                </div>
+
+                                <div className="mt-5 space-y-2 text-sm text-gray-500">
+                                    {patient.phone && (
+                                        <p>
+                                            Phone: {patient.phone}
+                                        </p>
+                                    )}
+
+                                    {patient.date_of_birth && (
+                                        <p>
+                                            Date of birth:{" "}
+                                            {patient.date_of_birth}
+                                        </p>
+                                    )}
+
+                                    {patient.gender && (
+                                        <p>
+                                            Gender:{" "}
+                                            {patient.gender_display ||
+                                                getGenderLabel(
+                                                    patient.gender
+                                                )}
+                                        </p>
+                                    )}
+
+                                    {patient.address && (
+                                        <p className="line-clamp-2">
+                                            Address: {patient.address}
+                                        </p>
+                                    )}
+                                </div>
+                            </Link>
+                        );
+                    })}
+                </div>
+            )}
         </div>
-
-
     );
-
 }
