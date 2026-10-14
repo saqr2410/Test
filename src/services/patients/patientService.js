@@ -3,6 +3,10 @@ import api from "../../api/axios";
 const PATIENTS_URL = "/patients";
 
 const patientService = {
+    // =====================================================
+    // Patients
+    // =====================================================
+
     getPatients: async (params = {}) => {
         const response = await api.get(
             `${PATIENTS_URL}/`,
@@ -70,6 +74,10 @@ const patientService = {
         return response.data;
     },
 
+    // =====================================================
+    // Chronic Diseases
+    // =====================================================
+
     getChronicDiseases: async (params = {}) => {
         const response = await api.get(
             `${PATIENTS_URL}/chronic-diseases/`,
@@ -104,6 +112,10 @@ const patientService = {
 
         return response.data;
     },
+
+    // =====================================================
+    // Patient Chronic Diseases
+    // =====================================================
 
     getPatientDiseases: async (patientId) => {
         const response = await api.get(
@@ -144,6 +156,10 @@ const patientService = {
         return response.data;
     },
 
+    // =====================================================
+    // Fitness & Nutrition Profile
+    // =====================================================
+
     getFitnessProfiles: async (params = {}) => {
         const response = await api.get(
             `${PATIENTS_URL}/fitness-profiles/`,
@@ -178,39 +194,9 @@ const patientService = {
         return response.data;
     },
 
-    getNutritionProfiles: async (params = {}) => {
-        const response = await api.get(
-            `${PATIENTS_URL}/nutrition-profiles/`,
-            { params }
-        );
-
-        return response.data;
-    },
-
-    getNutritionProfile: async (id) => {
-        const response = await api.get(
-            `${PATIENTS_URL}/nutrition-profiles/${id}/`
-        );
-
-        return response.data;
-    },
-
-    updateNutritionProfile: async (id, data) => {
-        const response = await api.patch(
-            `${PATIENTS_URL}/nutrition-profiles/${id}/`,
-            data
-        );
-
-        return response.data;
-    },
-
-    deleteNutritionProfile: async (id) => {
-        const response = await api.delete(
-            `${PATIENTS_URL}/nutrition-profiles/${id}/`
-        );
-
-        return response.data;
-    },
+    // =====================================================
+    // Pregnancy Profiles
+    // =====================================================
 
     getPregnancyProfiles: async (params = {}) => {
         const response = await api.get(
@@ -246,6 +232,10 @@ const patientService = {
         return response.data;
     },
 
+    // =====================================================
+    // Child Profiles
+    // =====================================================
+
     getChildProfiles: async (params = {}) => {
         const response = await api.get(
             `${PATIENTS_URL}/child-profiles/`,
@@ -279,6 +269,10 @@ const patientService = {
 
         return response.data;
     },
+
+    // =====================================================
+    // Patient Medications
+    // =====================================================
 
     getMedications: async (params = {}) => {
         const response = await api.get(
@@ -328,6 +322,10 @@ const patientService = {
         return response.data;
     },
 
+    // =====================================================
+    // Patient Advices
+    // =====================================================
+
     getAdvices: async (params = {}) => {
         const response = await api.get(
             `${PATIENTS_URL}/patient-advices/`,
@@ -362,6 +360,10 @@ const patientService = {
 
         return response.data;
     },
+
+    // =====================================================
+    // Patient Visits
+    // =====================================================
 
     getVisits: async (params = {}) => {
         const response = await api.get(
@@ -410,6 +412,10 @@ const patientService = {
 
         return response.data;
     },
+
+    // =====================================================
+    // Patient Follow-ups
+    // =====================================================
 
     getFollowUps: async (params = {}) => {
         const response = await api.get(
@@ -461,6 +467,10 @@ const patientService = {
 
         return response.data;
     },
+
+    // =====================================================
+    // Follow-up Products
+    // =====================================================
 
     getFollowUpProducts: async (followUpId) => {
         const response = await api.get(
@@ -517,50 +527,56 @@ export const {
     createPatient,
     updatePatient,
     deletePatient,
+
     getChronicDiseases,
     createChronicDisease,
     updateChronicDisease,
     deleteChronicDisease,
+
     getPatientDiseases,
     createPatientDisease,
     updatePatientDisease,
     deletePatientDisease,
+
     getFitnessProfiles,
     getFitnessProfile,
     updateFitnessProfile,
     deleteFitnessProfile,
-    getNutritionProfiles,
-    getNutritionProfile,
-    updateNutritionProfile,
-    deleteNutritionProfile,
+
     getPregnancyProfiles,
     getPregnancyProfile,
     updatePregnancyProfile,
     deletePregnancyProfile,
+
     getChildProfiles,
     getChildProfile,
     updateChildProfile,
     deleteChildProfile,
+
     getMedications,
     getPatientMedications,
     createMedication,
     updateMedication,
     deleteMedication,
+
     getAdvices,
     createAdvice,
     updateAdvice,
     deleteAdvice,
+
     getVisits,
     getPatientVisits,
     createVisit,
     updateVisit,
     deleteVisit,
+
     getFollowUps,
     getFollowUp,
     getPatientFollowUps,
     createFollowUp,
     updateFollowUp,
     deleteFollowUp,
+
     getFollowUpProducts,
     getFollowUpProductsList,
     createFollowUpProduct,

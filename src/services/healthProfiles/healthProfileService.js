@@ -1,11 +1,16 @@
 import api from "../../api/axios";
 
+// =========================================================
+// Health Profiles
+// =========================================================
 
-export const getHealthProfiles = async () => {
-    const { data } = await api.get("/patients/");
+export const getHealthProfiles = async (params = {}) => {
+    const { data } = await api.get("/patients/", {
+        params,
+    });
+
     return data;
 };
-
 
 export const getHealthProfileDetails = async (id) => {
     const { data } = await api.get(
@@ -14,7 +19,6 @@ export const getHealthProfileDetails = async (id) => {
 
     return data;
 };
-
 
 export const createHealthProfile = async (payload) => {
     const { data } = await api.post(
@@ -25,11 +29,7 @@ export const createHealthProfile = async (payload) => {
     return data;
 };
 
-
-export const updateHealthProfile = async (
-    id,
-    payload
-) => {
+export const updateHealthProfile = async (id, payload) => {
     const { data } = await api.patch(
         `/patients/${id}/`,
         payload
@@ -38,39 +38,37 @@ export const updateHealthProfile = async (
     return data;
 };
 
-
 export const deleteHealthProfile = async (id) => {
-    const { data } = await api.delete(
-        `/patients/${id}/`
-    );
-
-    return data;
+    await api.delete(`/patients/${id}/`);
 };
 
+// =========================================================
+// Chronic Diseases
+// =========================================================
 
-export const getChronicDiseases = async () => {
+export const getChronicDiseases = async (params = {}) => {
     const { data } = await api.get(
-        "/patients/chronic-diseases/"
+        "/patients/chronic-diseases/",
+        { params }
     );
 
     return data;
 };
 
-
-export const getHealthProfileDiseases = async (
-    patientId
-) => {
+export const getHealthProfileDiseases = async (patientId) => {
     const { data } = await api.get(
-        `/patients/patient-diseases/?patient=${patientId}`
+        "/patients/patient-diseases/",
+        {
+            params: {
+                patient: patientId,
+            },
+        }
     );
 
     return data;
 };
 
-
-export const addHealthProfileDisease = async (
-    payload
-) => {
+export const addHealthProfileDisease = async (payload) => {
     const { data } = await api.post(
         "/patients/patient-diseases/",
         payload
@@ -79,11 +77,7 @@ export const addHealthProfileDisease = async (
     return data;
 };
 
-
-export const updateHealthProfileDisease = async (
-    id,
-    payload
-) => {
+export const updateHealthProfileDisease = async (id, payload) => {
     const { data } = await api.patch(
         `/patients/patient-diseases/${id}/`,
         payload
@@ -92,201 +86,168 @@ export const updateHealthProfileDisease = async (
     return data;
 };
 
-
-export const deleteHealthProfileDisease = async (
-    id
-) => {
-    const { data } = await api.delete(
-        `/patients/patient-diseases/${id}/`
-    );
-
-    return data;
+export const deleteHealthProfileDisease = async (id) => {
+    await api.delete(`/patients/patient-diseases/${id}/`);
 };
 
+// =========================================================
+// Medications
+// =========================================================
 
-export const getHealthProfileMedications = async (
-    patientId
-) => {
+export const getHealthProfileMedications = async (patientId) => {
     const { data } = await api.get(
-        `/patients/medications/?patient=${patientId}`
+        "/patients/patient-medications/",
+        {
+            params: {
+                patient: patientId,
+            },
+        }
     );
 
     return data;
 };
 
-
-export const createHealthProfileMedication = async (
-    payload
-) => {
+export const createHealthProfileMedication = async (payload) => {
     const { data } = await api.post(
-        "/patients/medications/",
+        "/patients/patient-medications/",
         payload
     );
 
     return data;
 };
 
-
-export const updateHealthProfileMedication = async (
-    id,
-    payload
-) => {
+export const updateHealthProfileMedication = async (id, payload) => {
     const { data } = await api.patch(
-        `/patients/medications/${id}/`,
+        `/patients/patient-medications/${id}/`,
         payload
     );
 
     return data;
 };
 
-
-export const deleteHealthProfileMedication = async (
-    id
-) => {
-    const { data } = await api.delete(
-        `/patients/medications/${id}/`
+export const deleteHealthProfileMedication = async (id) => {
+    await api.delete(
+        `/patients/patient-medications/${id}/`
     );
-
-    return data;
 };
 
+// =========================================================
+// Visits
+// =========================================================
 
-export const getHealthProfileVisits = async (
-    patientId
-) => {
+export const getHealthProfileVisits = async (patientId) => {
     const { data } = await api.get(
-        `/patients/visits/?patient=${patientId}`
+        "/patients/patient-visits/",
+        {
+            params: {
+                patient: patientId,
+            },
+        }
     );
 
     return data;
 };
 
-
-export const createHealthProfileVisit = async (
-    payload
-) => {
+export const createHealthProfileVisit = async (payload) => {
     const { data } = await api.post(
-        "/patients/visits/",
+        "/patients/patient-visits/",
         payload
     );
 
     return data;
 };
 
-
-export const updateHealthProfileVisit = async (
-    id,
-    payload
-) => {
+export const updateHealthProfileVisit = async (id, payload) => {
     const { data } = await api.patch(
-        `/patients/visits/${id}/`,
+        `/patients/patient-visits/${id}/`,
         payload
     );
 
     return data;
 };
 
-
-export const deleteHealthProfileVisit = async (
-    id
-) => {
-    const { data } = await api.delete(
-        `/patients/visits/${id}/`
-    );
-
-    return data;
+export const deleteHealthProfileVisit = async (id) => {
+    await api.delete(`/patients/patient-visits/${id}/`);
 };
 
+// =========================================================
+// Follow-ups
+// =========================================================
 
-export const getHealthProfileFollowUps = async (
-    patientId
-) => {
+export const getHealthProfileFollowUps = async (patientId) => {
     const { data } = await api.get(
-        `/patients/follow-ups/patient/${patientId}/`
+        "/patients/patient-follow-ups/",
+        {
+            params: {
+                patient: patientId,
+            },
+        }
     );
 
     return data;
 };
 
-
-export const createHealthProfileFollowUp = async (
-    payload
-) => {
+export const createHealthProfileFollowUp = async (payload) => {
     const { data } = await api.post(
-        "/patients/follow-ups/",
+        "/patients/patient-follow-ups/",
         payload
     );
 
     return data;
 };
 
-
-export const updateHealthProfileFollowUp = async (
-    id,
-    payload
-) => {
+export const updateHealthProfileFollowUp = async (id, payload) => {
     const { data } = await api.patch(
-        `/patients/follow-ups/${id}/`,
+        `/patients/patient-follow-ups/${id}/`,
         payload
     );
 
     return data;
 };
 
-
-export const deleteHealthProfileFollowUp = async (
-    id
-) => {
-    const { data } = await api.delete(
-        `/patients/follow-ups/${id}/`
+export const deleteHealthProfileFollowUp = async (id) => {
+    await api.delete(
+        `/patients/patient-follow-ups/${id}/`
     );
-
-    return data;
 };
 
+// =========================================================
+// Follow-up Products
+// =========================================================
 
-export const getFollowUpProducts = async (
-    followUpId
-) => {
+export const getFollowUpProducts = async (followUpId) => {
     const { data } = await api.get(
-        `/patients/follow-up-products/?follow_up=${followUpId}`
+        "/patients/patient-follow-up-products/",
+        {
+            params: {
+                follow_up: followUpId,
+            },
+        }
     );
 
     return data;
 };
 
-
-export const createFollowUpProduct = async (
-    payload
-) => {
+export const createFollowUpProduct = async (payload) => {
     const { data } = await api.post(
-        "/patients/follow-up-products/",
+        "/patients/patient-follow-up-products/",
         payload
     );
 
     return data;
 };
 
-
-export const updateFollowUpProduct = async (
-    id,
-    payload
-) => {
+export const updateFollowUpProduct = async (id, payload) => {
     const { data } = await api.patch(
-        `/patients/follow-up-products/${id}/`,
+        `/patients/patient-follow-up-products/${id}/`,
         payload
     );
 
     return data;
 };
 
-
-export const deleteFollowUpProduct = async (
-    id
-) => {
-    const { data } = await api.delete(
-        `/patients/follow-up-products/${id}/`
+export const deleteFollowUpProduct = async (id) => {
+    await api.delete(
+        `/patients/patient-follow-up-products/${id}/`
     );
-
-    return data;
 };

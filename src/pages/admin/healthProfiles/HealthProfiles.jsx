@@ -15,7 +15,6 @@ import {
     HeartPulse,
     Search,
     UserRound,
-    Utensils,
 } from "lucide-react";
 
 import toast from "react-hot-toast";
@@ -30,13 +29,8 @@ import EmptyState from "../../../components/ui/feedback/EmptyState";
 const PROFILE_TYPES = [
     {
         value: "FITNESS",
-        label: "لياقة بدنية",
+        label: "اللياقة والتغذية",
         icon: Activity,
-    },
-    {
-        value: "NUTRITION",
-        label: "تغذية",
-        icon: Utensils,
     },
     {
         value: "CHRONIC",
@@ -86,7 +80,13 @@ const formatDate = (date) => {
         return "—";
     }
 
-    return new Date(date).toLocaleDateString(
+    const parsedDate = new Date(date);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+        return "—";
+    }
+
+    return parsedDate.toLocaleDateString(
         "ar-EG",
         {
             year: "numeric",
@@ -111,39 +111,49 @@ export default function HealthProfiles() {
     const [childOnly, setChildOnly] = useState("");
 
 
-    const loadProfiles = async () => {
-        try {
-            setLoading(true);
-
-            const data = await patientService.getPatients({
-                search: search.trim() || undefined,
-                patient_type: profileType || undefined,
-                gender: gender || undefined,
-                is_for_child: childOnly || undefined,
-            });
-
-            setProfiles(
-                Array.isArray(data)
-                    ? data
-                    : data?.results || []
-            );
-        } catch (error) {
-            toast.error(
-                error.response?.data?.detail ||
-                "حدث خطأ أثناء تحميل الملفات الصحية"
-            );
-        } finally {
-            setLoading(false);
-        }
-    };
-
-
     useEffect(() => {
-        const timer = setTimeout(() => {
-            loadProfiles();
+        let active = true;
+
+        const timer = setTimeout(async () => {
+            try {
+                setLoading(true);
+
+                const data = await patientService.getPatients({
+                    search: search.trim() || undefined,
+                    patient_type: profileType || undefined,
+                    gender: gender || undefined,
+                    is_for_child: childOnly || undefined,
+                });
+
+                if (!active) {
+                    return;
+                }
+
+                const results = Array.isArray(data)
+                    ? data
+                    : data?.results || [];
+
+                setProfiles(results);
+            } catch (error) {
+                if (!active) {
+                    return;
+                }
+
+                toast.error(
+                    error.response?.data?.detail ||
+                    "حدث خطأ أثناء تحميل الملفات الصحية"
+                );
+            } finally {
+                if (active) {
+                    setLoading(false);
+                }
+            }
         }, 350);
 
-        return () => clearTimeout(timer);
+        return () => {
+            active = false;
+            clearTimeout(timer);
+        };
     }, [
         search,
         profileType,
@@ -178,6 +188,8 @@ export default function HealthProfiles() {
             dir="rtl"
             className="space-y-6"
         >
+            {/* Page Header */}
+
             <div className="
                 flex
                 flex-col
@@ -226,6 +238,9 @@ export default function HealthProfiles() {
                 </Link>
             </div>
 
+
+            {/* Statistics */}
+
             <div className="
                 grid
                 gap-4
@@ -256,6 +271,9 @@ export default function HealthProfiles() {
                     icon={Activity}
                 />
             </div>
+
+
+            {/* Search and Filters */}
 
             <div className="
                 rounded-2xl
@@ -288,6 +306,8 @@ export default function HealthProfiles() {
                     md:grid-cols-2
                     xl:grid-cols-4
                 ">
+                    {/* Search */}
+
                     <div className="relative">
                         <Search
                             size={18}
@@ -328,6 +348,9 @@ export default function HealthProfiles() {
                         />
                     </div>
 
+
+                    {/* Profile Type */}
+
                     <select
                         value={profileType}
                         onChange={(event) =>
@@ -365,6 +388,9 @@ export default function HealthProfiles() {
                         )}
                     </select>
 
+
+                    {/* Gender */}
+
                     <select
                         value={gender}
                         onChange={(event) =>
@@ -398,6 +424,9 @@ export default function HealthProfiles() {
                             إناث
                         </option>
                     </select>
+
+
+                    {/* Child Filter */}
 
                     <select
                         value={childOnly}
@@ -434,6 +463,9 @@ export default function HealthProfiles() {
                     </select>
                 </div>
             </div>
+
+
+            {/* Profiles Table */}
 
             <div className="
                 overflow-hidden
@@ -472,6 +504,7 @@ export default function HealthProfiles() {
                         </p>
                     </div>
                 </div>
+
 
                 {loading ? (
                     <div className="p-8">
@@ -539,14 +572,14 @@ export default function HealthProfiles() {
 
                                         return (
                                             <tr
-                                                key={
-                                                    profile.id
-                                                }
+                                                key={profile.id}
                                                 className="
                                                     transition
                                                     hover:bg-gray-50
                                                 "
                                             >
+                                                {/* Patient */}
+
                                                 <td className="px-5 py-4">
                                                     <div className="
                                                         flex
@@ -575,9 +608,7 @@ export default function HealthProfiles() {
                                                                 font-semibold
                                                                 text-gray-900
                                                             ">
-                                                                {
-                                                                    profile.name
-                                                                }
+                                                                {profile.name || "—"}
                                                             </p>
 
                                                             {profile.is_for_child && (
@@ -599,17 +630,20 @@ export default function HealthProfiles() {
                                                     </div>
                                                 </td>
 
+
+                                                {/* Customer */}
+
                                                 <td className="
                                                     px-5
                                                     py-4
                                                     text-sm
                                                     text-gray-700
                                                 ">
-                                                    {
-                                                        profile.customer_name ||
-                                                        "—"
-                                                    }
+                                                    {profile.customer_name || "—"}
                                                 </td>
+
+
+                                                {/* Profile Type */}
 
                                                 <td className="px-5 py-4">
                                                     <span className="
@@ -630,6 +664,9 @@ export default function HealthProfiles() {
                                                     </span>
                                                 </td>
 
+
+                                                {/* Gender */}
+
                                                 <td className="
                                                     px-5
                                                     py-4
@@ -640,6 +677,9 @@ export default function HealthProfiles() {
                                                         profile.gender
                                                     )}
                                                 </td>
+
+
+                                                {/* Phone */}
 
                                                 <td
                                                     dir="ltr"
@@ -658,6 +698,9 @@ export default function HealthProfiles() {
                                                     }
                                                 </td>
 
+
+                                                {/* Created At */}
+
                                                 <td className="
                                                     px-5
                                                     py-4
@@ -669,6 +712,9 @@ export default function HealthProfiles() {
                                                     )}
                                                 </td>
 
+
+                                                {/* Actions */}
+
                                                 <td className="
                                                     px-5
                                                     py-4
@@ -677,6 +723,7 @@ export default function HealthProfiles() {
                                                     <Link
                                                         to={`/admin/health-profiles/${profile.id}`}
                                                         title="عرض الملف"
+                                                        aria-label={`عرض الملف الصحي ${profile.name || ""}`}
                                                         className="
                                                             inline-flex
                                                             h-9
@@ -712,6 +759,10 @@ export default function HealthProfiles() {
     );
 }
 
+
+// =========================================================
+// Statistics Card
+// =========================================================
 
 function StatCard({
     title,
@@ -770,6 +821,10 @@ function StatCard({
     );
 }
 
+
+// =========================================================
+// Table Header
+// =========================================================
 
 function TableHeader({
     children,

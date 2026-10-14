@@ -1,127 +1,105 @@
+
 import { useEffect, useState } from "react";
+
 import {
-    User,
+    UserRound,
     Mail,
     Phone,
     MapPin,
-    Camera,
-    Save,
     ShieldCheck,
-    Pencil,
-    CheckCircle2,
+    RefreshCw,
 } from "lucide-react";
+
 import toast from "react-hot-toast";
 
 import {
     getCurrentUser,
-    updateCurrentUser,
 } from "../../../services/users/userService";
 
-export default function Profile() {
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+import { useAuth } from "../../../contexts/AuthContext";
 
-    const [form, setForm] = useState({
-        first_name: "",
-        last_name: "",
-        email: "",
-        phone: "",
-        profile: {
-            address: "",
-        },
-    });
+const getErrorMessage = (error) => {
+    const data = error?.response?.data;
+
+    if (typeof data?.detail === "string") {
+        return data.detail;
+    }
+
+    if (typeof data?.message === "string") {
+        return data.message;
+    }
+
+    if (data && typeof data === "object") {
+        const messages = Object.values(data)
+            .flatMap((value) =>
+                Array.isArray(value) ? value : [value]
+            )
+            .filter((value) => typeof value === "string");
+
+        if (messages.length) {
+            return messages.join(" ");
+        }
+    }
+
+    if (!error?.response) {
+        return "تعذر الاتصال بالخادم. حاول مرة أخرى.";
+    }
+
+    return "حدث خطأ أثناء تحميل بيانات الحساب.";
+};
+
+const getAvatarUrl = (name) =>
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(
+        name || "Smart Pharmacy"
+    )}&background=5B2A86&color=fff&size=240&bold=true`;
+
+export default function Profile() {
+    const { user } = useAuth();
+
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let active = true;
+
+        const loadProfile = async () => {
+            try {
+                const data = await getCurrentUser();
+
+                if (active) {
+                    setProfile(data);
+                }
+            } catch (error) {
+                if (active) {
+                    toast.error(getErrorMessage(error));
+                }
+            } finally {
+                if (active) {
+                    setLoading(false);
+                }
+            }
+        };
+
         loadProfile();
+
+        return () => {
+            active = false;
+        };
     }, []);
-
-    const loadProfile = async () => {
-        try {
-            const data = await getCurrentUser();
-
-            setForm({
-                first_name: data.first_name || "",
-                last_name: data.last_name || "",
-                email: data.email || "",
-                phone: data.phone || "",
-                profile: {
-                    address: data.profile?.address || "",
-                },
-            });
-        } catch (error) {
-            toast.error("فشل تحميل بيانات الحساب");
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const handleChange = (e) => {
-        const { name, value } = e.target;
-
-        if (name === "address") {
-            setForm((prev) => ({
-                ...prev,
-                profile: {
-                    ...prev.profile,
-                    address: value,
-                },
-            }));
-
-            return;
-        }
-
-        setForm((prev) => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
-
-    const saveProfile = async () => {
-        if (!form.first_name.trim()) {
-            toast.error("من فضلك أدخل الاسم الأول");
-            return;
-        }
-
-        if (!form.last_name.trim()) {
-            toast.error("من فضلك أدخل الاسم الأخير");
-            return;
-        }
-
-        if (!form.email.trim()) {
-            toast.error("من فضلك أدخل البريد الإلكتروني");
-            return;
-        }
-
-        try {
-            setSaving(true);
-
-            await updateCurrentUser(form);
-
-            toast.success("تم تحديث بيانات حسابك بنجاح");
-        } catch (error) {
-            toast.error(
-                error?.response?.data?.detail ||
-                "حدث خطأ أثناء حفظ البيانات"
-            );
-        } finally {
-            setSaving(false);
-        }
-    };
-
-    const fullName =
-        `${form.first_name} ${form.last_name}`.trim() || "المستخدم";
-
-    const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(
-        fullName
-    )}&background=5B2A86&color=fff&size=200&bold=true`;
 
     if (loading) {
         return (
-            <div className="min-h-[70vh] flex items-center justify-center px-6">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="w-12 h-12 border-4 border-purple-100 border-t-[#5B2A86] rounded-full animate-spin" />
+            <div
+                dir="rtl"
+                className="grid min-h-[65vh] place-items-center bg-[#FAF8FC] px-4"
+            >
+                <div className="text-center">
+                    <RefreshCw
+                        size={36}
+                        className="mx-auto mb-4 animate-spin text-[#5B2A86]"
+                    />
 
-                    <p className="text-gray-500 font-medium">
+                    <p className="font-medium text-gray-500">
                         جاري تحميل بيانات حسابك...
                     </p>
                 </div>
@@ -129,339 +107,171 @@ export default function Profile() {
         );
     }
 
+    const firstName = profile?.first_name || "";
+    const lastName = profile?.last_name || "";
+
+    const fullName =
+        `${firstName} ${lastName}`.trim() ||
+        profile?.username ||
+        user?.username ||
+        "المستخدم";
+
+    const email = profile?.email || user?.email || "";
+    const phone = profile?.phone || "";
+    const address = profile?.profile?.address || "";
+
     return (
-        <div
+        <main
             dir="rtl"
-            className="min-h-screen bg-gradient-to-b from-purple-50/70 via-white to-white"
+            className="min-h-screen bg-[#FAF8FC] pb-16"
         >
-            <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
-                {/* ==========================================
-                    Page Header
-                ========================================== */}
-
-                <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-11 h-11 rounded-2xl bg-[#5B2A86] text-white flex items-center justify-center shadow-lg shadow-purple-200">
-                            <User size={22} />
+            <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:py-12">
+                <header className="mb-8">
+                    <div className="mb-3 flex items-center gap-3">
+                        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-[#5B2A86] text-white shadow-lg shadow-purple-200">
+                            <UserRound size={23} />
                         </div>
 
-                        <div>
-                            <h1 className="text-2xl sm:text-3xl font-black text-gray-900">
-                                الملف الشخصي
-                            </h1>
-
-                            <p className="text-sm text-gray-500 mt-1">
-                                إدارة وتحديث بيانات حسابك الشخصية
-                            </p>
-                        </div>
+                        <span className="text-sm font-bold text-[#5B2A86]">
+                            حسابي
+                        </span>
                     </div>
-                </div>
 
-                {/* ==========================================
-                    Main Layout
-                ========================================== */}
+                    <h1 className="text-3xl font-black tracking-tight text-gray-900 sm:text-4xl">
+                        الملف الشخصي
+                    </h1>
 
-                <div className="grid lg:grid-cols-[320px_1fr] gap-6">
-                    {/* ==========================================
-                        Profile Card
-                    ========================================== */}
+                    <p className="mt-2 max-w-2xl text-sm leading-7 text-gray-500 sm:text-base">
+                        اعرض بيانات حسابك المسجلة في الصيدلية.
+                        لتعديل بياناتك، انتقل إلى صفحة الإعدادات.
+                    </p>
+                </header>
 
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden h-fit">
-                        <div className="h-24 bg-gradient-to-l from-[#5B2A86] to-[#7B3FB0]" />
+                <div className="grid items-start gap-6 lg:grid-cols-[300px_minmax(0,1fr)]">
+                    <aside className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+                        <div className="h-28 bg-gradient-to-l from-[#432064] via-[#5B2A86] to-[#8A55B5]" />
 
-                        <div className="px-6 pb-6 -mt-14">
-                            <div className="flex justify-center">
-                                <div className="relative">
-                                    <img
-                                        src={avatarUrl}
-                                        alt="Profile"
-                                        className="w-28 h-28 rounded-full border-4 border-white shadow-xl bg-white"
-                                    />
+                        <div className="-mt-14 px-6 pb-6">
+                            <img
+                                src={getAvatarUrl(fullName)}
+                                alt="الصورة الرمزية للحساب"
+                                className="mx-auto h-28 w-28 rounded-full border-4 border-white bg-white shadow-md"
+                            />
 
-                                    <button
-                                        type="button"
-                                        className="
-                                            absolute
-                                            bottom-1
-                                            left-1
-                                            w-10
-                                            h-10
-                                            rounded-full
-                                            bg-[#5B2A86]
-                                            text-white
-                                            flex
-                                            items-center
-                                            justify-center
-                                            border-4
-                                            border-white
-                                            shadow-md
-                                            hover:bg-[#6C2EA8]
-                                            transition
-                                        "
-                                        title="تغيير الصورة"
-                                    >
-                                        <Camera size={16} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="text-center mt-4">
-                                <h2 className="text-xl font-black text-gray-900">
+                            <div className="mt-4 text-center">
+                                <h2 className="break-words text-xl font-black text-gray-900">
                                     {fullName}
                                 </h2>
 
-                                <p className="text-sm text-gray-500 mt-1 break-all">
-                                    {form.email || "لا يوجد بريد إلكتروني"}
+                                <p className="mt-2 break-all text-sm text-gray-500">
+                                    {email || "لم يُضف بريد إلكتروني"}
                                 </p>
                             </div>
 
-                            {/* Account Status */}
-
-                            <div className="mt-6 p-4 rounded-2xl bg-green-50 border border-green-100">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-xl bg-green-100 text-green-600 flex items-center justify-center">
-                                        <ShieldCheck size={19} />
+                            <div className="mt-6 rounded-2xl border border-green-100 bg-green-50 p-4">
+                                <div className="flex items-start gap-3">
+                                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-green-100 text-green-700">
+                                        <ShieldCheck size={21} />
                                     </div>
 
                                     <div>
-                                        <p className="font-bold text-gray-800 text-sm">
-                                            الحساب نشط
+                                        <p className="font-bold text-gray-800">
+                                            بيانات حسابك
                                         </p>
 
-                                        <p className="text-xs text-gray-500 mt-0.5">
-                                            بيانات الحساب محفوظة بأمان
+                                        <p className="mt-1 text-xs leading-6 text-gray-600">
+                                            حافظ على سرية كلمة المرور
+                                            ولا تشارك بيانات تسجيل الدخول.
                                         </p>
                                     </div>
-
-                                    <CheckCircle2
-                                        size={18}
-                                        className="mr-auto text-green-500"
-                                    />
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </aside>
 
-                    {/* ==========================================
-                        Personal Information
-                    ========================================== */}
+                    <section className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm">
+                        <div className="border-b border-gray-100 px-5 py-5 sm:px-8">
+                            <h2 className="font-black text-gray-900 sm:text-lg">
+                                بياناتك الشخصية
+                            </h2>
 
-                    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
-                        {/* Card Header */}
+                            <p className="mt-1 text-xs text-gray-500 sm:text-sm">
+                                البيانات المسجلة لحسابك
+                            </p>
+                        </div>
 
-                        <div className="px-6 sm:px-8 py-6 border-b border-gray-100 flex items-center justify-between gap-4">
-                            <div>
-                                <h2 className="text-lg font-black text-gray-900">
-                                    المعلومات الشخصية
-                                </h2>
+                        <div className="grid gap-5 p-5 sm:grid-cols-2 sm:p-8">
+                            <InfoField
+                                label="الاسم الأول"
+                                icon={<UserRound size={18} />}
+                                value={firstName}
+                            />
 
-                                <p className="text-sm text-gray-500 mt-1">
-                                    قم بتعديل بياناتك الشخصية من هنا
-                                </p>
-                            </div>
+                            <InfoField
+                                label="الاسم الأخير"
+                                icon={<UserRound size={18} />}
+                                value={lastName}
+                            />
 
-                            <div className="hidden sm:flex w-10 h-10 rounded-xl bg-purple-50 text-[#5B2A86] items-center justify-center">
-                                <Pencil size={18} />
+                            <InfoField
+                                label="البريد الإلكتروني"
+                                icon={<Mail size={18} />}
+                                value={email}
+                                dir="ltr"
+                            />
+
+                            <InfoField
+                                label="رقم الهاتف"
+                                icon={<Phone size={18} />}
+                                value={phone}
+                                dir="ltr"
+                            />
+
+                            <div className="sm:col-span-2">
+                                <InfoField
+                                    label="العنوان"
+                                    icon={<MapPin size={18} />}
+                                    value={address}
+                                />
                             </div>
                         </div>
 
-                        {/* Form */}
-
-                        <div className="p-6 sm:p-8">
-                            <div className="grid md:grid-cols-2 gap-5">
-                                <Input
-                                    icon={<User size={18} />}
-                                    label="الاسم الأول"
-                                    name="first_name"
-                                    value={form.first_name}
-                                    onChange={handleChange}
-                                    placeholder="أدخل الاسم الأول"
-                                />
-
-                                <Input
-                                    icon={<User size={18} />}
-                                    label="الاسم الأخير"
-                                    name="last_name"
-                                    value={form.last_name}
-                                    onChange={handleChange}
-                                    placeholder="أدخل الاسم الأخير"
-                                />
-
-                                <Input
-                                    icon={<Mail size={18} />}
-                                    label="البريد الإلكتروني"
-                                    name="email"
-                                    type="email"
-                                    value={form.email}
-                                    onChange={handleChange}
-                                    placeholder="example@email.com"
-                                />
-
-                                <Input
-                                    icon={<Phone size={18} />}
-                                    label="رقم الهاتف"
-                                    name="phone"
-                                    type="tel"
-                                    value={form.phone}
-                                    onChange={handleChange}
-                                    placeholder="01xxxxxxxxx"
-                                />
-                            </div>
-
-                            {/* Address */}
-
-                            <div className="mt-5">
-                                <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2.5">
-                                    <span className="text-[#5B2A86]">
-                                        <MapPin size={18} />
-                                    </span>
-
-                                    العنوان
-                                </label>
-
-                                <div className="relative">
-                                    <MapPin
-                                        size={18}
-                                        className="
-                                            absolute
-                                            right-4
-                                            top-4
-                                            text-gray-400
-                                        "
-                                    />
-
-                                    <textarea
-                                        name="address"
-                                        value={form.profile.address}
-                                        onChange={handleChange}
-                                        rows={3}
-                                        placeholder="أدخل عنوانك بالتفصيل"
-                                        className="
-                                            w-full
-                                            border
-                                            border-gray-200
-                                            bg-gray-50
-                                            rounded-2xl
-                                            pr-11
-                                            pl-4
-                                            py-3.5
-                                            text-gray-800
-                                            placeholder:text-gray-400
-                                            outline-none
-                                            resize-none
-                                            transition
-                                            focus:bg-white
-                                            focus:border-[#5B2A86]
-                                            focus:ring-4
-                                            focus:ring-purple-100
-                                        "
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Save */}
-
-                            <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-4 mt-8 pt-6 border-t border-gray-100">
-                                <p className="text-xs text-gray-400">
-                                    تأكد من صحة البيانات قبل حفظ التعديلات
-                                </p>
-
-                                <button
-                                    type="button"
-                                    onClick={saveProfile}
-                                    disabled={saving}
-                                    className="
-                                        inline-flex
-                                        items-center
-                                        justify-center
-                                        gap-2
-                                        bg-[#5B2A86]
-                                        hover:bg-[#6C2EA8]
-                                        disabled:bg-purple-300
-                                        text-white
-                                        px-7
-                                        py-3.5
-                                        rounded-2xl
-                                        font-bold
-                                        shadow-lg
-                                        shadow-purple-200
-                                        hover:shadow-xl
-                                        transition-all
-                                        disabled:cursor-not-allowed
-                                    "
-                                >
-                                    {saving ? (
-                                        <>
-                                            <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                                            جاري الحفظ...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Save size={18} />
-                                            حفظ التعديلات
-                                        </>
-                                    )}
-                                </button>
-                            </div>
+                        <div className="border-t border-gray-100 bg-gray-50 px-5 py-4 sm:px-8">
+                            <p className="text-sm leading-7 text-gray-500">
+                                لتعديل الاسم أو الهاتف أو العنوان،
+                                افتح صفحة الإعدادات من حسابك.
+                            </p>
                         </div>
-                    </div>
+                    </section>
                 </div>
             </div>
-        </div>
+        </main>
     );
 }
 
-/* ==========================================
-   Input Component
-========================================== */
-
-function Input({
-    icon,
+function InfoField({
     label,
-    name,
-    type = "text",
+    icon,
     value,
-    onChange,
-    placeholder,
+    dir = "rtl",
 }) {
     return (
         <div>
-            <label className="flex items-center gap-2 text-sm font-bold text-gray-700 mb-2.5">
-                <span className="text-[#5B2A86]">{icon}</span>
-
+            <p className="mb-2 text-sm font-bold text-gray-700">
                 {label}
-            </label>
+            </p>
 
-            <div className="relative">
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">
+            <div className="flex min-h-12 items-start gap-3 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3.5">
+                <span className="mt-0.5 shrink-0 text-[#5B2A86]">
                     {icon}
                 </span>
 
-                <input
-                    type={type}
-                    name={name}
-                    value={value}
-                    onChange={onChange}
-                    placeholder={placeholder}
-                    className="
-                        w-full
-                        border
-                        border-gray-200
-                        bg-gray-50
-                        rounded-2xl
-                        pr-11
-                        pl-4
-                        py-3.5
-                        text-gray-800
-                        placeholder:text-gray-400
-                        outline-none
-                        transition
-                        focus:bg-white
-                        focus:border-[#5B2A86]
-                        focus:ring-4
-                        focus:ring-purple-100
-                    "
-                />
+                <p
+                    dir={dir}
+                    className="min-w-0 flex-1 break-words text-sm leading-6 text-gray-700"
+                >
+                    {value || "لم تتم إضافة هذه البيانات بعد"}
+                </p>
             </div>
         </div>
     );

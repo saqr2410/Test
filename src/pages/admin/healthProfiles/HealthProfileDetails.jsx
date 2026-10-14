@@ -1,4 +1,5 @@
 import {
+    useCallback,
     useEffect,
     useState,
 } from "react";
@@ -24,7 +25,6 @@ import {
     Stethoscope,
     Trash2,
     UserRound,
-    Utensils,
     X,
 } from "lucide-react";
 
@@ -32,6 +32,7 @@ import toast from "react-hot-toast";
 
 import {
     getHealthProfileDetails,
+    deleteHealthProfile,
     createHealthProfileMedication,
     updateHealthProfileMedication,
     deleteHealthProfileMedication,
@@ -50,13 +51,8 @@ import ConfirmDialog from "../../../components/common/ConfirmDialog";
 
 const PROFILE_TYPES = {
     FITNESS: {
-        label: "لياقة بدنية",
+        label: "لياقة وتغذية",
         icon: Activity,
-    },
-
-    NUTRITION: {
-        label: "تغذية",
-        icon: Utensils,
     },
 
     CHRONIC: {
@@ -78,8 +74,7 @@ const PROFILE_TYPES = {
 
 const FOLLOW_UP_TYPES = {
     CHRONIC: "أمراض مزمنة",
-    FITNESS: "لياقة بدنية",
-    NUTRITION: "تغذية",
+    FITNESS: "لياقة وتغذية",
     PREGNANCY: "حمل",
     CHILD: "طفل",
 };
@@ -119,7 +114,6 @@ const emptyFollowUp = {
     customer_notes: "",
     pharmacist_notes: "",
     recommendations: "",
-    products: [],
 };
 
 
@@ -135,159 +129,127 @@ const emptyFollowUpProduct = {
 };
 
 
+const inputClass = `
+    w-full rounded-xl border border-gray-200
+    bg-white px-4 py-3 text-sm text-gray-800
+    outline-none transition
+    focus:border-purple-500 focus:ring-2
+    focus:ring-purple-100
+    disabled:cursor-not-allowed
+    disabled:bg-gray-100
+`;
+
+
+const buttonClass = `
+    inline-flex items-center justify-center gap-2
+    rounded-xl px-4 py-2.5 text-sm font-medium
+    transition disabled:cursor-not-allowed
+    disabled:opacity-50
+`;
+
+
 export default function HealthProfileDetails() {
+    const { id } = useParams();
 
-    const {
-        id,
-    } = useParams();
+    const navigate = useNavigate();
 
-    const navigate =
-        useNavigate();
+    const [profile, setProfile] = useState(null);
 
+    const [loading, setLoading] = useState(true);
 
-    const [
-        profile,
-        setProfile,
-    ] = useState(null);
+    const [medicationModal, setMedicationModal] =
+        useState(false);
 
+    const [medicationLoading, setMedicationLoading] =
+        useState(false);
 
-    const [
-        loading,
-        setLoading,
-    ] = useState(true);
+    const [medicationForm, setMedicationForm] =
+        useState({ ...emptyMedication });
 
+    const [editingMedication, setEditingMedication] =
+        useState(null);
 
-    const [
-        medicationModal,
-        setMedicationModal,
-    ] = useState(false);
+    const [followUpModal, setFollowUpModal] =
+        useState(false);
 
+    const [followUpLoading, setFollowUpLoading] =
+        useState(false);
 
-    const [
-        medicationLoading,
-        setMedicationLoading,
-    ] = useState(false);
+    const [followUpForm, setFollowUpForm] =
+        useState({ ...emptyFollowUp });
 
+    const [editingFollowUp, setEditingFollowUp] =
+        useState(null);
 
-    const [
-        medicationForm,
-        setMedicationForm,
-    ] = useState(emptyMedication);
+    const [productModal, setProductModal] =
+        useState(false);
 
+    const [productLoading, setProductLoading] =
+        useState(false);
 
-    const [
-        editingMedication,
-        setEditingMedication,
-    ] = useState(null);
+    const [productForm, setProductForm] =
+        useState({ ...emptyFollowUpProduct });
 
+    const [editingProduct, setEditingProduct] =
+        useState(null);
 
-    const [
-        followUpModal,
-        setFollowUpModal,
-    ] = useState(false);
+    const [selectedFollowUp, setSelectedFollowUp] =
+        useState(null);
 
+    const [deleteOpen, setDeleteOpen] =
+        useState(false);
 
-    const [
-        followUpLoading,
-        setFollowUpLoading,
-    ] = useState(false);
+    const [deleteLoading, setDeleteLoading] =
+        useState(false);
 
-
-    const [
-        followUpForm,
-        setFollowUpForm,
-    ] = useState(emptyFollowUp);
+    const [deleteTarget, setDeleteTarget] =
+        useState(null);
 
 
-    const [
-        editingFollowUp,
-        setEditingFollowUp,
-    ] = useState(null);
+    const loadProfile = useCallback(async () => {
+        if (!id) {
+            setProfile(null);
+            setLoading(false);
+            return;
+        }
 
+        setLoading(true);
 
-    const [
-        productModal,
-        setProductModal,
-    ] = useState(false);
+        try {
+            const response =
+                await getHealthProfileDetails(id);
 
+            setProfile(response?.data ?? response);
+        } catch (error) {
+            console.error(
+                "Failed to load health profile:",
+                error
+            );
 
-    const [
-        productLoading,
-        setProductLoading,
-    ] = useState(false);
+            setProfile(null);
 
-
-    const [
-        productForm,
-        setProductForm,
-    ] = useState(emptyFollowUpProduct);
-
-
-    const [
-        selectedFollowUp,
-        setSelectedFollowUp,
-    ] = useState(null);
-
-
-    const [
-        editingProduct,
-        setEditingProduct,
-    ] = useState(null);
-
-
-    const [
-        deleteOpen,
-        setDeleteOpen,
-    ] = useState(false);
-
-
-    const [
-        deleteLoading,
-        setDeleteLoading,
-    ] = useState(false);
-
-
-    const [
-        deleteTarget,
-        setDeleteTarget,
-    ] = useState(null);
-
-
-    useEffect(() => {
-
-        loadProfile();
-
+            toast.error(
+                getErrorMessage(
+                    error,
+                    "فشل تحميل الملف الصحي."
+                )
+            );
+        } finally {
+            setLoading(false);
+        }
     }, [id]);
 
 
-    const loadProfile = async () => {
+    useEffect(() => {
+        loadProfile();
+    }, [loadProfile]);
 
-        try {
 
-            setLoading(true);
-
-            const data =
-                await getHealthProfileDetails(id);
-
-            setProfile(data);
-
-        } catch (error) {
-
-            toast.error(
-                error.response?.data?.detail ||
-                "فشل تحميل الملف الصحي."
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-    };
-
+    // =====================================================
+    // Medication Modal
+    // =====================================================
 
     const openMedicationCreate = () => {
-
         setEditingMedication(null);
 
         setMedicationForm({
@@ -299,38 +261,38 @@ export default function HealthProfileDetails() {
 
 
     const openMedicationEdit = (medication) => {
-
-        setEditingMedication(
-            medication
-        );
+        setEditingMedication(medication);
 
         setMedicationForm({
             product:
-                medication.product || "",
+                medication.product_id ??
+                (
+                    typeof medication.product === "number"
+                        ? medication.product
+                        : medication.product?.id
+                ) ??
+                "",
 
-            dosage:
-                medication.dosage || "",
+            dosage: medication.dosage ?? "",
 
-            frequency:
-                medication.frequency || "",
+            frequency: medication.frequency ?? "",
 
             duration_days:
-                medication.duration_days || "",
+                medication.duration_days ?? "",
 
             start_date:
-                medication.start_date || "",
+                medication.start_date ?? "",
 
             instructions:
-                medication.instructions || "",
+                medication.instructions ?? "",
         });
 
         setMedicationModal(true);
     };
 
 
-    const closeMedicationModal = () => {
-
-        if (medicationLoading) {
+    const closeMedicationModal = (force = false) => {
+        if (medicationLoading && !force) {
             return;
         }
 
@@ -344,146 +306,98 @@ export default function HealthProfileDetails() {
     };
 
 
-    const handleMedicationChange = (
-        event
-    ) => {
-
-        const {
-            name,
-            value,
-        } = event.target;
-
-        setMedicationForm(
-            previous => ({
-                ...previous,
-                [name]: value,
-            })
-        );
-    };
-
-
-    const handleMedicationSubmit = async (
-        event
-    ) => {
-
+    const submitMedication = async (event) => {
         event.preventDefault();
 
-        if (!medicationForm.product) {
-
+        if (
+            !medicationForm.product ||
+            !medicationForm.dosage.trim() ||
+            !medicationForm.frequency.trim()
+        ) {
             toast.error(
-                "يجب اختيار المنتج."
+                "من فضلك أكمل بيانات الدواء المطلوبة."
             );
 
             return;
         }
 
-        if (!medicationForm.dosage) {
+        setMedicationLoading(true);
 
-            toast.error(
-                "يجب إدخال الجرعة."
-            );
+        const payload = {
+            patient: Number(id),
 
-            return;
-        }
+            product: Number(medicationForm.product),
 
-        if (!medicationForm.frequency) {
+            dosage: medicationForm.dosage.trim(),
 
-            toast.error(
-                "يجب إدخال التكرار."
-            );
+            frequency: medicationForm.frequency.trim(),
 
-            return;
-        }
+            duration_days: toNumberOrNull(
+                medicationForm.duration_days
+            ),
+
+            start_date:
+                medicationForm.start_date || null,
+
+            instructions:
+                medicationForm.instructions.trim(),
+        };
 
         try {
-
-            setMedicationLoading(true);
-
-            const payload = {
-                patient: Number(id),
-                product: Number(
-                    medicationForm.product
-                ),
-                dosage:
-                    medicationForm.dosage,
-
-                frequency:
-                    medicationForm.frequency,
-
-                duration_days:
-                    medicationForm.duration_days
-                        ? Number(
-                            medicationForm.duration_days
-                        )
-                        : null,
-
-                start_date:
-                    medicationForm.start_date ||
-                    null,
-
-                instructions:
-                    medicationForm.instructions,
-            };
-
-
             if (editingMedication) {
-
                 await updateHealthProfileMedication(
                     editingMedication.id,
                     payload
                 );
 
                 toast.success(
-                    "تم تحديث الدواء بنجاح."
+                    "تم تعديل بيانات الدواء بنجاح."
                 );
-
             } else {
-
                 await createHealthProfileMedication(
                     payload
                 );
 
                 toast.success(
-                    "تم إضافة الدواء بنجاح."
+                    "تمت إضافة الدواء بنجاح."
                 );
             }
 
-
-            closeMedicationModal();
+            closeMedicationModal(true);
 
             await loadProfile();
-
         } catch (error) {
-
-            const data =
-                error.response?.data;
-
-            toast.error(
-                data?.detail ||
-                data?.patient?.[0] ||
-                data?.product?.[0] ||
-                data?.non_field_errors?.[0] ||
-                "فشل حفظ الدواء."
+            console.error(
+                "Medication save failed:",
+                error
             );
 
+            toast.error(
+                getErrorMessage(
+                    error,
+                    "فشل حفظ بيانات الدواء."
+                )
+            );
         } finally {
-
             setMedicationLoading(false);
-
         }
     };
 
 
-    const openFollowUpCreate = () => {
+    // =====================================================
+    // Follow-up Modal
+    // =====================================================
 
+    const openFollowUpCreate = () => {
         setEditingFollowUp(null);
 
         setFollowUpForm({
             ...emptyFollowUp,
+
             follow_up_type:
-                getDefaultFollowUpType(),
-            follow_up_date:
-                getToday(),
+                profile?.patient_type || "",
+
+            follow_up_date: getToday(),
         });
 
         setFollowUpModal(true);
@@ -491,20 +405,17 @@ export default function HealthProfileDetails() {
 
 
     const openFollowUpEdit = (followUp) => {
-
-        setEditingFollowUp(
-            followUp
-        );
+        setEditingFollowUp(followUp);
 
         setFollowUpForm({
             follow_up_type:
-                followUp.follow_up_type || "",
+                followUp.follow_up_type ?? "",
 
             follow_up_date:
-                followUp.follow_up_date || "",
+                followUp.follow_up_date ?? "",
 
             next_follow_up_date:
-                followUp.next_follow_up_date || "",
+                followUp.next_follow_up_date ?? "",
 
             weight_kg:
                 followUp.weight_kg ?? "",
@@ -519,43 +430,39 @@ export default function HealthProfileDetails() {
                 followUp.waist_cm ?? "",
 
             blood_pressure:
-                followUp.blood_pressure || "",
+                followUp.blood_pressure ?? "",
 
             blood_glucose:
-                followUp.blood_glucose || "",
+                followUp.blood_glucose ?? "",
 
             pregnancy_week:
                 followUp.pregnancy_week ?? "",
 
             goal:
-                followUp.goal || "",
+                followUp.goal ?? "",
 
             progress:
-                followUp.progress || "",
+                followUp.progress ?? "",
 
             symptoms:
-                followUp.symptoms || "",
+                followUp.symptoms ?? "",
 
             customer_notes:
-                followUp.customer_notes || "",
+                followUp.customer_notes ?? "",
 
             pharmacist_notes:
-                followUp.pharmacist_notes || "",
+                followUp.pharmacist_notes ?? "",
 
             recommendations:
-                followUp.recommendations || "",
-
-            products:
-                followUp.products || [],
+                followUp.recommendations ?? "",
         });
 
         setFollowUpModal(true);
     };
 
 
-    const closeFollowUpModal = () => {
-
-        if (followUpLoading) {
+    const closeFollowUpModal = (force = false) => {
+        if (followUpLoading && !force) {
             return;
         }
 
@@ -569,274 +476,138 @@ export default function HealthProfileDetails() {
     };
 
 
-    const handleFollowUpChange = (
-        event
-    ) => {
-
-        const {
-            name,
-            value,
-        } = event.target;
-
-        setFollowUpForm(
-            previous => ({
-                ...previous,
-                [name]: value,
-            })
-        );
-    };
-
-
-    const handleFollowUpSubmit = async (
-        event
-    ) => {
-
+    const submitFollowUp = async (event) => {
         event.preventDefault();
 
-        if (!followUpForm.follow_up_type) {
-
+        if (
+            !followUpForm.follow_up_type ||
+            !followUpForm.follow_up_date
+        ) {
             toast.error(
-                "يجب اختيار نوع المتابعة."
+                "من فضلك اختر نوع المتابعة وتاريخها."
             );
 
             return;
         }
 
-        if (!followUpForm.follow_up_date) {
+        setFollowUpLoading(true);
 
-            toast.error(
-                "يجب تحديد تاريخ المتابعة."
-            );
+        const payload = {
+            patient: Number(id),
 
-            return;
-        }
+            follow_up_type:
+                followUpForm.follow_up_type,
+
+            follow_up_date:
+                followUpForm.follow_up_date,
+
+            next_follow_up_date:
+                followUpForm.next_follow_up_date || null,
+
+            weight_kg:
+                toNumberOrNull(
+                    followUpForm.weight_kg
+                ),
+
+            height_cm:
+                toNumberOrNull(
+                    followUpForm.height_cm
+                ),
+
+            weight_change_kg:
+                toNumberOrNull(
+                    followUpForm.weight_change_kg
+                ),
+
+            waist_cm:
+                toNumberOrNull(
+                    followUpForm.waist_cm
+                ),
+
+            blood_pressure:
+                followUpForm.blood_pressure.trim(),
+
+            blood_glucose:
+                toNumberOrNull(
+                    followUpForm.blood_glucose
+                ),
+
+            pregnancy_week:
+                toNumberOrNull(
+                    followUpForm.pregnancy_week
+                ),
+
+            goal: followUpForm.goal.trim(),
+
+            progress:
+                followUpForm.progress.trim(),
+
+            symptoms:
+                followUpForm.symptoms.trim(),
+
+            customer_notes:
+                followUpForm.customer_notes.trim(),
+
+            pharmacist_notes:
+                followUpForm.pharmacist_notes.trim(),
+
+            recommendations:
+                followUpForm.recommendations.trim(),
+        };
 
         try {
-
-            setFollowUpLoading(true);
-
-            const payload = {
-                patient: Number(id),
-
-                follow_up_type:
-                    followUpForm.follow_up_type,
-
-                follow_up_date:
-                    followUpForm.follow_up_date,
-
-                next_follow_up_date:
-                    followUpForm.next_follow_up_date ||
-                    null,
-
-                weight_kg:
-                    toNumberOrNull(
-                        followUpForm.weight_kg
-                    ),
-
-                height_cm:
-                    toNumberOrNull(
-                        followUpForm.height_cm
-                    ),
-
-                weight_change_kg:
-                    toNumberOrNull(
-                        followUpForm.weight_change_kg
-                    ),
-
-                waist_cm:
-                    toNumberOrNull(
-                        followUpForm.waist_cm
-                    ),
-
-                blood_pressure:
-                    followUpForm.blood_pressure,
-
-                blood_glucose:
-                    followUpForm.blood_glucose,
-
-                pregnancy_week:
-                    toNumberOrNull(
-                        followUpForm.pregnancy_week
-                    ),
-
-                goal:
-                    followUpForm.goal,
-
-                progress:
-                    followUpForm.progress,
-
-                symptoms:
-                    followUpForm.symptoms,
-
-                customer_notes:
-                    followUpForm.customer_notes,
-
-                pharmacist_notes:
-                    followUpForm.pharmacist_notes,
-
-                recommendations:
-                    followUpForm.recommendations,
-            };
-
-
-            let savedFollowUp;
-
-
             if (editingFollowUp) {
-
-                savedFollowUp =
-                    await updateHealthProfileFollowUp(
-                        editingFollowUp.id,
-                        payload
-                    );
-
-                toast.success(
-                    "تم تحديث المتابعة بنجاح."
+                await updateHealthProfileFollowUp(
+                    editingFollowUp.id,
+                    payload
                 );
 
+                toast.success(
+                    "تم تعديل المتابعة بنجاح."
+                );
             } else {
-
-                savedFollowUp =
-                    await createHealthProfileFollowUp(
-                        payload
-                    );
+                await createHealthProfileFollowUp(
+                    payload
+                );
 
                 toast.success(
-                    "تم إنشاء المتابعة بنجاح."
+                    "تمت إضافة المتابعة بنجاح."
                 );
             }
 
+            /*
+             * منتجات المتابعة يتم حفظها من خلال
+             * نافذة مستقلة؛ لا ننشئها مرة أخرى
+             * أثناء تعديل المتابعة حتى لا تتكرر.
+             */
 
-            const products =
-                followUpForm.products || [];
-
-
-            if (
-                products.length > 0 &&
-                savedFollowUp?.id
-            ) {
-
-                for (
-                    const product
-                    of products
-                ) {
-
-                    if (
-                        product.id &&
-                        product._existing
-                    ) {
-
-                        await updateFollowUpProduct(
-                            product.id,
-                            {
-                                follow_up:
-                                    savedFollowUp.id,
-
-                                product:
-                                    Number(
-                                        product.product
-                                    ),
-
-                                usage_type:
-                                    product.usage_type,
-
-                                dosage:
-                                    product.dosage,
-
-                                frequency:
-                                    product.frequency,
-
-                                instructions:
-                                    product.instructions,
-
-                                started_at:
-                                    product.started_at ||
-                                    null,
-
-                                stopped_at:
-                                    product.stopped_at ||
-                                    null,
-
-                                notes:
-                                    product.notes,
-                            }
-                        );
-
-                    } else {
-
-                        await createFollowUpProduct(
-                            {
-                                follow_up:
-                                    savedFollowUp.id,
-
-                                product:
-                                    Number(
-                                        product.product
-                                    ),
-
-                                usage_type:
-                                    product.usage_type,
-
-                                dosage:
-                                    product.dosage,
-
-                                frequency:
-                                    product.frequency,
-
-                                instructions:
-                                    product.instructions,
-
-                                started_at:
-                                    product.started_at ||
-                                    null,
-
-                                stopped_at:
-                                    product.stopped_at ||
-                                    null,
-
-                                notes:
-                                    product.notes,
-                            }
-                        );
-                    }
-                }
-            }
-
-
-            closeFollowUpModal();
+            closeFollowUpModal(true);
 
             await loadProfile();
-
         } catch (error) {
-
-            const data =
-                error.response?.data;
-
-            toast.error(
-                data?.detail ||
-                data?.patient?.[0] ||
-                data?.follow_up_type?.[0] ||
-                data?.follow_up_date?.[0] ||
-                data?.next_follow_up_date?.[0] ||
-                data?.non_field_errors?.[0] ||
-                "فشل حفظ المتابعة."
+            console.error(
+                "Follow-up save failed:",
+                error
             );
 
+            toast.error(
+                getErrorMessage(
+                    error,
+                    "فشل حفظ بيانات المتابعة."
+                )
+            );
         } finally {
-
             setFollowUpLoading(false);
-
         }
     };
 
 
-    const openProductCreate = (
-        followUp
-    ) => {
+    // =====================================================
+    // Follow-up Product Modal
+    // =====================================================
 
-        setSelectedFollowUp(
-            followUp
-        );
+    const openProductCreate = (followUp) => {
+        setSelectedFollowUp(followUp);
 
         setEditingProduct(null);
 
@@ -848,53 +619,46 @@ export default function HealthProfileDetails() {
     };
 
 
-    const openProductEdit = (
-        followUp,
-        product
-    ) => {
+    const openProductEdit = (followUp, product) => {
+        setSelectedFollowUp(followUp);
 
-        setSelectedFollowUp(
-            followUp
-        );
-
-        setEditingProduct(
-            product
-        );
+        setEditingProduct(product);
 
         setProductForm({
             product:
-                product.product || "",
+                product.product_id ??
+                (
+                    typeof product.product === "number"
+                        ? product.product
+                        : product.product?.id
+                ) ??
+                "",
 
             usage_type:
-                product.usage_type ||
-                "RECOMMENDED",
+                product.usage_type || "RECOMMENDED",
 
-            dosage:
-                product.dosage || "",
+            dosage: product.dosage ?? "",
 
-            frequency:
-                product.frequency || "",
+            frequency: product.frequency ?? "",
 
             instructions:
-                product.instructions || "",
+                product.instructions ?? "",
 
             started_at:
-                product.started_at || "",
+                product.started_at ?? "",
 
             stopped_at:
-                product.stopped_at || "",
+                product.stopped_at ?? "",
 
-            notes:
-                product.notes || "",
+            notes: product.notes ?? "",
         });
 
         setProductModal(true);
     };
 
 
-    const closeProductModal = () => {
-
-        if (productLoading) {
+    const closeProductModal = (force = false) => {
+        if (productLoading && !force) {
             return;
         }
 
@@ -910,133 +674,109 @@ export default function HealthProfileDetails() {
     };
 
 
-    const handleProductChange = (
-        event
-    ) => {
-
-        const {
-            name,
-            value,
-        } = event.target;
-
-        setProductForm(
-            previous => ({
-                ...previous,
-                [name]: value,
-            })
-        );
-    };
-
-
-    const handleProductSubmit = async (
-        event
-    ) => {
-
+    const submitProduct = async (event) => {
         event.preventDefault();
 
-        if (!selectedFollowUp) {
-            return;
-        }
-
-        if (!productForm.product) {
-
+        if (
+            !selectedFollowUp?.id ||
+            !productForm.product
+        ) {
             toast.error(
-                "يجب اختيار المنتج."
+                "من فضلك اختر المنتج."
             );
 
             return;
         }
 
+        setProductLoading(true);
+
+        const payload = {
+            follow_up: selectedFollowUp.id,
+
+            product: Number(productForm.product),
+
+            usage_type:
+                productForm.usage_type,
+
+            dosage:
+                productForm.dosage.trim(),
+
+            frequency:
+                productForm.frequency.trim(),
+
+            instructions:
+                productForm.instructions.trim(),
+
+            started_at:
+                productForm.started_at || null,
+
+            stopped_at:
+                productForm.stopped_at || null,
+
+            notes:
+                productForm.notes.trim(),
+        };
+
         try {
-
-            setProductLoading(true);
-
-            const payload = {
-                follow_up:
-                    selectedFollowUp.id,
-
-                product:
-                    Number(
-                        productForm.product
-                    ),
-
-                usage_type:
-                    productForm.usage_type,
-
-                dosage:
-                    productForm.dosage,
-
-                frequency:
-                    productForm.frequency,
-
-                instructions:
-                    productForm.instructions,
-
-                started_at:
-                    productForm.started_at ||
-                    null,
-
-                stopped_at:
-                    productForm.stopped_at ||
-                    null,
-
-                notes:
-                    productForm.notes,
-            };
-
-
             if (editingProduct) {
-
                 await updateFollowUpProduct(
                     editingProduct.id,
                     payload
                 );
 
                 toast.success(
-                    "تم تحديث المنتج بنجاح."
+                    "تم تعديل منتج المتابعة."
                 );
-
             } else {
-
                 await createFollowUpProduct(
                     payload
                 );
 
                 toast.success(
-                    "تم إضافة المنتج للمتابعة."
+                    "تمت إضافة المنتج للمتابعة."
                 );
             }
 
-
-            closeProductModal();
+            closeProductModal(true);
 
             await loadProfile();
-
         } catch (error) {
-
-            const data =
-                error.response?.data;
-
-            toast.error(
-                data?.detail ||
-                data?.product?.[0] ||
-                data?.follow_up?.[0] ||
-                data?.non_field_errors?.[0] ||
-                "فشل حفظ المنتج."
+            console.error(
+                "Follow-up product save failed:",
+                error
             );
 
+            toast.error(
+                getErrorMessage(
+                    error,
+                    "فشل حفظ منتج المتابعة."
+                )
+            );
         } finally {
-
             setProductLoading(false);
-
         }
     };
 
 
-    const askDeleteMedication = (
-        medication
-    ) => {
+    // =====================================================
+    // Delete Actions
+    // =====================================================
 
+    const askDeleteProfile = () => {
+        if (!profile?.id) {
+            return;
+        }
+
+        setDeleteTarget({
+            type: "patient",
+            item: profile,
+        });
+
+        setDeleteOpen(true);
+    };
+
+
+    const askDeleteMedication = (medication) => {
         setDeleteTarget({
             type: "medication",
             item: medication,
@@ -1046,12 +786,9 @@ export default function HealthProfileDetails() {
     };
 
 
-    const askDeleteFollowUp = (
-        followUp
-    ) => {
-
+    const askDeleteFollowUp = (followUp) => {
         setDeleteTarget({
-            type: "followup",
+            type: "followUp",
             item: followUp,
         });
 
@@ -1059,2880 +796,1698 @@ export default function HealthProfileDetails() {
     };
 
 
-    const askDeleteProduct = (
-        followUp,
-        product
-    ) => {
-
+    const askDeleteProduct = (product) => {
         setDeleteTarget({
             type: "product",
             item: product,
-            followUp,
         });
 
         setDeleteOpen(true);
     };
 
 
-    const handleDelete = async () => {
-
-        if (!deleteTarget) {
+    const closeDeleteDialog = () => {
+        if (deleteLoading) {
             return;
         }
 
+        setDeleteOpen(false);
+
+        setDeleteTarget(null);
+    };
+
+
+    const handleDelete = async () => {
+        if (!deleteTarget?.item?.id) {
+            return;
+        }
+
+        setDeleteLoading(true);
+
         try {
+            switch (deleteTarget.type) {
+                case "patient": {
+                    await deleteHealthProfile(
+                        deleteTarget.item.id
+                    );
 
-            setDeleteLoading(true);
+                    toast.success(
+                        "تم حذف الملف الصحي بنجاح."
+                    );
 
+                    setDeleteOpen(false);
 
-            if (
-                deleteTarget.type ===
-                "medication"
-            ) {
+                    setDeleteTarget(null);
 
-                await deleteHealthProfileMedication(
-                    deleteTarget.item.id
-                );
+                    navigate("/admin/health-profiles");
 
-                toast.success(
-                    "تم حذف الدواء."
-                );
+                    return;
+                }
+
+                case "medication": {
+                    await deleteHealthProfileMedication(
+                        deleteTarget.item.id
+                    );
+
+                    toast.success(
+                        "تم حذف الدواء بنجاح."
+                    );
+
+                    break;
+                }
+
+                case "followUp": {
+                    await deleteHealthProfileFollowUp(
+                        deleteTarget.item.id
+                    );
+
+                    toast.success(
+                        "تم حذف المتابعة بنجاح."
+                    );
+
+                    break;
+                }
+
+                case "product": {
+                    await deleteFollowUpProduct(
+                        deleteTarget.item.id
+                    );
+
+                    toast.success(
+                        "تم حذف المنتج من المتابعة."
+                    );
+
+                    break;
+                }
+
+                default:
+                    return;
             }
-
-
-            if (
-                deleteTarget.type ===
-                "followup"
-            ) {
-
-                await deleteHealthProfileFollowUp(
-                    deleteTarget.item.id
-                );
-
-                toast.success(
-                    "تم حذف المتابعة."
-                );
-            }
-
-
-            if (
-                deleteTarget.type ===
-                "product"
-            ) {
-
-                await deleteFollowUpProduct(
-                    deleteTarget.item.id
-                );
-
-                toast.success(
-                    "تم حذف المنتج من المتابعة."
-                );
-            }
-
 
             setDeleteOpen(false);
 
             setDeleteTarget(null);
 
             await loadProfile();
-
         } catch (error) {
-
-            const data =
-                error.response?.data;
-
-            toast.error(
-                data?.detail ||
-                "فشل تنفيذ الحذف."
+            console.error(
+                "Delete operation failed:",
+                error
             );
 
+            toast.error(
+                getErrorMessage(
+                    error,
+                    "فشل تنفيذ عملية الحذف."
+                )
+            );
         } finally {
-
             setDeleteLoading(false);
-
         }
     };
 
 
-    const getDefaultFollowUpType =
-        () => {
-
-            return profile?.patient_type ||
-                "";
-        };
-
+    // =====================================================
+    // Loading / Empty States
+    // =====================================================
 
     if (loading) {
-
         return <Loading />;
-
     }
-
 
     if (!profile) {
+        return (
+            <div
+                className="
+                    flex min-h-[50vh] flex-col
+                    items-center justify-center
+                    gap-4 px-4 text-center
+                "
+            >
+                <div
+                    className="
+                        flex h-16 w-16 items-center
+                        justify-center rounded-2xl
+                        bg-gray-100 text-gray-400
+                    "
+                >
+                    <FileText size={30} />
+                </div>
 
-        return null;
+                <h2 className="text-xl font-bold text-gray-800">
+                    الملف الصحي غير موجود
+                </h2>
 
+                <p className="text-sm text-gray-500">
+                    تعذر العثور على الملف المطلوب.
+                </p>
+
+                <Link
+                    to="/admin/health-profiles"
+                    className={`
+                        ${buttonClass}
+                        bg-purple-700 text-white
+                        hover:bg-purple-800
+                    `}
+                >
+                    <ArrowLeft size={17} />
+                    العودة للملفات الصحية
+                </Link>
+            </div>
+        );
     }
 
 
-    const type =
-        PROFILE_TYPES[
-        profile.patient_type
-        ] || {
-            label:
-                profile.patient_type ||
-                "غير معروف",
-            icon: UserRound,
-        };
+    const fitness = profile.fitness || profile.nutrition;
 
+    const medications = profile.medications || [];
 
-    const TypeIcon =
-        type.icon;
+    const diseases = profile.diseases || [];
+
+    const advices = profile.advices || [];
+
+    const visits = profile.visits || [];
+
+    const followUps = profile.follow_ups || [];
 
 
     return (
-
         <div
+            className="
+                mx-auto w-full max-w-7xl
+                space-y-6 p-4 sm:p-6
+            "
             dir="rtl"
-            className="space-y-6"
         >
+            {/* ================================================= */}
+            {/* Header */}
+            {/* ================================================= */}
 
-            <div className="
-                flex
-                flex-col
-                gap-4
-                sm:flex-row
-                sm:items-center
-                sm:justify-between
-            ">
-
-                <div className="
-                    flex
-                    items-center
-                    gap-4
-                ">
-
+            <div
+                className="
+                    flex flex-col gap-4
+                    sm:flex-row sm:items-center
+                    sm:justify-between
+                "
+            >
+                <div className="flex items-start gap-3">
                     <Link
                         to="/admin/health-profiles"
+                        aria-label="العودة"
                         className="
-                            flex
-                            h-10
-                            w-10
-                            items-center
-                            justify-center
-                            rounded-xl
-                            border
-                            border-gray-200
-                            bg-white
-                            text-gray-600
-                            transition
-                            hover:bg-gray-50
+                            flex h-11 w-11 shrink-0
+                            items-center justify-center
+                            rounded-xl border border-gray-200
+                            bg-white text-gray-600
+                            transition hover:bg-gray-50
                         "
                     >
-
-                        <ArrowLeft
-                            size={19}
-                        />
-
+                        <ArrowLeft size={20} />
                     </Link>
 
-
                     <div>
-
-                        <h1 className="
-                            text-2xl
-                            font-bold
-                            text-gray-900
-                        ">
-
-                            {profile.name}
-
+                        <h1 className="text-2xl font-bold text-gray-900">
+                            تفاصيل الملف الصحي
                         </h1>
 
-                        <p className="
-                            mt-1
-                            text-sm
-                            text-gray-500
-                        ">
-
-                            الملف الصحي الكامل
-
+                        <p className="mt-1 text-sm text-gray-500">
+                            عرض وإدارة البيانات الصحية للمريض.
                         </p>
-
                     </div>
-
                 </div>
-
 
                 <button
                     type="button"
-                    onClick={() =>
-                        setDeleteTarget({
-                            type: "patient",
-                            item: profile,
-                        })
-                    }
-                    className="
-                        inline-flex
-                        items-center
-                        justify-center
-                        gap-2
-                        rounded-xl
-                        border
-                        border-red-200
-                        px-4
-                        py-3
-                        text-sm
-                        font-semibold
-                        text-red-600
-                        transition
-                        hover:bg-red-50
-                    "
+                    onClick={askDeleteProfile}
+                    className={`
+                        ${buttonClass}
+                        border border-red-200
+                        bg-red-50 text-red-600
+                        hover:bg-red-100
+                    `}
                 >
-
                     <Trash2 size={17} />
-
-                    حذف الملف
-
+                    حذف الملف الصحي
                 </button>
-
             </div>
 
 
-            <div className="
-                grid
-                gap-6
-                lg:grid-cols-3
-            ">
+            {/* ================================================= */}
+            {/* Patient Information */}
+            {/* ================================================= */}
 
-                <section className="
-                    rounded-2xl
-                    border
-                    border-gray-200
-                    bg-white
-                    p-6
-                    shadow-sm
-                    lg:col-span-2
-                ">
+            <ProfileSection
+                title="البيانات الأساسية"
+                icon={UserRound}
+            >
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <InfoItem
+                        label="اسم المريض"
+                        value={
+                            profile.patient_name ||
+                            profile.name ||
+                            profile.patient?.full_name ||
+                            profile.patient?.username
+                        }
+                    />
 
-                    <div className="
-                        flex
-                        items-center
-                        gap-4
-                    ">
+                    <InfoItem
+                        label="اسم المستخدم"
+                        value={
+                            profile.patient_username ||
+                            profile.patient?.username
+                        }
+                    />
 
-                        <div className="
-                            flex
-                            h-14
-                            w-14
-                            items-center
-                            justify-center
-                            rounded-2xl
-                            bg-primary-50
-                            text-primary-600
-                        ">
+                    <InfoItem
+                        label="رقم الهاتف"
+                        value={
+                            profile.phone ||
+                            profile.patient_phone ||
+                            profile.patient?.phone
+                        }
+                    />
 
-                            <TypeIcon
-                                size={27}
-                            />
+                    <InfoItem
+                        label="البريد الإلكتروني"
+                        value={
+                            profile.email ||
+                            profile.patient?.email
+                        }
+                    />
 
-                        </div>
+                    <InfoItem
+                        label="نوع الملف"
+                        value={
+                            PROFILE_TYPES[
+                                profile.patient_type
+                            ]?.label ||
+                            profile.patient_type
+                        }
+                    />
 
+                    <InfoItem
+                        label="تاريخ الإنشاء"
+                        value={formatDate(profile.created_at)}
+                        icon={CalendarDays}
+                    />
 
-                        <div>
-
-                            <h2 className="
-                                text-xl
-                                font-bold
-                                text-gray-900
-                            ">
-
-                                {profile.name}
-
-                            </h2>
-
-                            <p className="
-                                mt-1
-                                text-sm
-                                text-primary-600
-                            ">
-
-                                {
-                                    profile.patient_type_display ||
-                                    type.label
-                                }
-
-                            </p>
-
-                        </div>
-
+                    <div className="sm:col-span-2 lg:col-span-3">
+                        <InfoItem
+                            label="العنوان"
+                            value={profile.address}
+                            icon={MapPin}
+                        />
                     </div>
 
-
-                    <div className="
-                        mt-7
-                        grid
-                        gap-5
-                        sm:grid-cols-2
-                    ">
-
+                    <div className="sm:col-span-2 lg:col-span-3">
                         <InfoItem
-                            label="صاحب الملف"
-                            value={
-                                profile.customer_name
-                            }
+                            label="الحساسية"
+                            value={profile.allergies}
                         />
-
-                        <InfoItem
-                            label="رقم الهاتف"
-                            value={
-                                profile.phone ||
-                                profile.customer_phone
-                            }
-                        />
-
-                        <InfoItem
-                            label="تاريخ الميلاد"
-                            value={
-                                profile.date_of_birth
-                            }
-                        />
-
-                        <InfoItem
-                            label="النوع"
-                            value={
-                                profile.gender_display ||
-                                profile.gender
-                            }
-                        />
-
-                        <InfoItem
-                            label="نوع الملف الصحي"
-                            value={
-                                profile.patient_type_display ||
-                                type.label
-                            }
-                        />
-
-                        <InfoItem
-                            label="ملف طفل"
-                            value={
-                                profile.is_for_child
-                                    ? "نعم"
-                                    : "لا"
-                            }
-                        />
-
-                        <div className="sm:col-span-2">
-
-                            <InfoItem
-                                label="العنوان"
-                                value={
-                                    profile.address
-                                }
-                                icon={MapPin}
-                            />
-
-                        </div>
-
                     </div>
 
-                </section>
-
-
-                <section className="
-                    rounded-2xl
-                    border
-                    border-gray-200
-                    bg-white
-                    p-6
-                    shadow-sm
-                ">
-
-                    <h2 className="
-                        font-semibold
-                        text-gray-900
-                    ">
-
-                        معلومات الملف
-
-                    </h2>
-
-
-                    <div className="
-                        mt-5
-                        space-y-4
-                    ">
-
+                    <div className="sm:col-span-2 lg:col-span-3">
                         <InfoItem
-                            label="تم الإنشاء بواسطة"
-                            value={
-                                profile.created_by_name
-                            }
+                            label="ملاحظات طبية"
+                            value={profile.medical_notes}
                         />
-
-                        <InfoItem
-                            label="تاريخ الإنشاء"
-                            value={
-                                profile.created_at
-                                    ? new Date(
-                                        profile.created_at
-                                    ).toLocaleString(
-                                        "ar-EG"
-                                    )
-                                    : null
-                            }
-                        />
-
-                        <InfoItem
-                            label="آخر تحديث"
-                            value={
-                                profile.updated_at
-                                    ? new Date(
-                                        profile.updated_at
-                                    ).toLocaleString(
-                                        "ar-EG"
-                                    )
-                                    : null
-                            }
-                        />
-
                     </div>
-
-                </section>
-
-            </div>
+                </div>
+            </ProfileSection>
 
 
-            {profile.fitness && (
+            {/* ================================================= */}
+            {/* Fitness And Nutrition */}
+            {/* ================================================= */}
 
+            {fitness && (
                 <ProfileSection
-                    title="بيانات اللياقة البدنية"
+                    title="بيانات اللياقة والتغذية"
                     icon={Activity}
                 >
-
                     <InfoGrid
                         items={[
-                            [
-                                "الطول",
-                                profile.fitness.height_cm
-                                    ? `${profile.fitness.height_cm} سم`
-                                    : null,
-                            ],
-
-                            [
-                                "الوزن",
-                                profile.fitness.weight_kg
-                                    ? `${profile.fitness.weight_kg} كجم`
-                                    : null,
-                            ],
-
-                            [
-                                "الهدف",
-                                profile.fitness.fitness_goal,
-                            ],
-
-                            [
-                                "مستوى النشاط",
-                                profile.fitness.activity_level,
-                            ],
-
-                            [
-                                "ملاحظات",
-                                profile.fitness.notes,
-                            ],
+                            {
+                                label: "الطول",
+                                value: formatMetric(
+                                    fitness.height_cm,
+                                    "سم"
+                                ),
+                            },
+                            {
+                                label: "الوزن",
+                                value: formatMetric(
+                                    fitness.weight_kg,
+                                    "كجم"
+                                ),
+                            },
+                            {
+                                label: "الوزن المستهدف",
+                                value: formatMetric(
+                                    fitness.target_weight_kg,
+                                    "كجم"
+                                ),
+                            },
+                            {
+                                label: "الهدف الرياضي",
+                                value: fitness.fitness_goal,
+                            },
+                            {
+                                label: "الهدف الغذائي",
+                                value: fitness.goal,
+                            },
+                            {
+                                label: "مستوى النشاط",
+                                value: fitness.activity_level,
+                            },
+                            {
+                                label: "عدد الوجبات",
+                                value: fitness.meals_per_day,
+                            },
+                            {
+                                label: "استهلاك المياه",
+                                value: formatMetric(
+                                    fitness.water_intake_liters,
+                                    "لتر"
+                                ),
+                            },
+                            {
+                                label: "النظام الغذائي",
+                                value: fitness.dietary_preferences,
+                            },
+                            {
+                                label: "الحساسية الغذائية",
+                                value: fitness.food_allergies,
+                            },
+                            {
+                                label: "روتين التمارين",
+                                value: fitness.exercise_routine,
+                            },
+                            {
+                                label: "ملاحظات التغذية",
+                                value: fitness.nutrition_notes,
+                            },
+                            {
+                                label: "ملاحظات عامة",
+                                value: fitness.notes,
+                            },
                         ]}
                     />
-
                 </ProfileSection>
-
             )}
 
 
-            {profile.nutrition && (
-
-                <ProfileSection
-                    title="بيانات التغذية"
-                    icon={Utensils}
-                >
-
-                    <InfoGrid
-                        items={[
-                            [
-                                "الطول",
-                                profile.nutrition.height_cm
-                                    ? `${profile.nutrition.height_cm} سم`
-                                    : null,
-                            ],
-
-                            [
-                                "الوزن",
-                                profile.nutrition.weight_kg
-                                    ? `${profile.nutrition.weight_kg} كجم`
-                                    : null,
-                            ],
-
-                            [
-                                "الوزن المستهدف",
-                                profile.nutrition.target_weight_kg
-                                    ? `${profile.nutrition.target_weight_kg} كجم`
-                                    : null,
-                            ],
-
-                            [
-                                "الهدف",
-                                profile.nutrition.goal,
-                            ],
-
-                            [
-                                "التفضيلات الغذائية",
-                                profile.nutrition.dietary_preferences,
-                            ],
-
-                            [
-                                "الحساسيات الغذائية",
-                                profile.nutrition.food_allergies,
-                            ],
-
-                            [
-                                "ملاحظات",
-                                profile.nutrition.notes,
-                            ],
-                        ]}
-                    />
-
-                </ProfileSection>
-
-            )}
-
+            {/* ================================================= */}
+            {/* Pregnancy */}
+            {/* ================================================= */}
 
             {profile.pregnancy && (
-
                 <ProfileSection
                     title="بيانات الحمل"
                     icon={HeartPulse}
                 >
-
                     <InfoGrid
                         items={[
-                            [
-                                "تاريخ آخر دورة",
-                                profile.pregnancy.last_menstrual_period,
-                            ],
-
-                            [
-                                "موعد الولادة المتوقع",
-                                profile.pregnancy.expected_due_date,
-                            ],
-
-                            [
-                                "أسبوع الحمل",
-                                profile.pregnancy.pregnancy_week,
-                            ],
-
-                            [
-                                "ملاحظات",
-                                profile.pregnancy.notes,
-                            ],
-
-                            [
-                                "ملاحظات المخاطر",
-                                profile.pregnancy.risk_notes,
-                            ],
+                            {
+                                label: "أسبوع الحمل",
+                                value: profile.pregnancy.pregnancy_week,
+                            },
+                            {
+                                label: "تاريخ الولادة المتوقع",
+                                value: formatDate(
+                                    profile.pregnancy.expected_delivery_date
+                                ),
+                            },
+                            {
+                                label: "حالة الحمل",
+                                value: profile.pregnancy.status,
+                            },
+                            {
+                                label: "ملاحظات المخاطر",
+                                value: profile.pregnancy.risk_notes,
+                            },
+                            {
+                                label: "ملاحظات",
+                                value: profile.pregnancy.notes,
+                            },
                         ]}
                     />
-
                 </ProfileSection>
-
             )}
 
 
-            {profile.child && (
+            {/* ================================================= */}
+            {/* Child */}
+            {/* ================================================= */}
 
+            {profile.child && (
                 <ProfileSection
                     title="بيانات الطفل"
                     icon={Baby}
                 >
-
                     <InfoGrid
                         items={[
-                            [
-                                "اسم ولي الأمر",
-                                profile.child.guardian_name,
-                            ],
-
-                            [
-                                "هاتف ولي الأمر",
-                                profile.child.guardian_phone,
-                            ],
-
-                            [
-                                "الطول",
-                                profile.child.height_cm
-                                    ? `${profile.child.height_cm} سم`
-                                    : null,
-                            ],
-
-                            [
-                                "الوزن",
-                                profile.child.weight_kg
-                                    ? `${profile.child.weight_kg} كجم`
-                                    : null,
-                            ],
-
-                            [
-                                "الحساسيات",
-                                profile.child.allergies,
-                            ],
-
-                            [
-                                "ملاحظات",
-                                profile.child.notes,
-                            ],
+                            {
+                                label: "اسم ولي الأمر",
+                                value: profile.child.guardian_name,
+                            },
+                            {
+                                label: "هاتف ولي الأمر",
+                                value: profile.child.guardian_phone,
+                            },
+                            {
+                                label: "الحساسية",
+                                value:
+                                    profile.child.allergies ||
+                                    profile.allergies,
+                            },
+                            {
+                                label: "ملاحظات",
+                                value: profile.child.notes,
+                            },
                         ]}
                     />
-
                 </ProfileSection>
-
             )}
 
+
+            {/* ================================================= */}
+            {/* Chronic Diseases */}
+            {/* ================================================= */}
 
             <ListSection
                 title="الأمراض المزمنة"
                 icon={HeartPulse}
-                items={profile.diseases}
+                items={diseases}
                 emptyText="لا توجد أمراض مزمنة مسجلة."
                 renderItem={(item) => (
+                    <div className="space-y-2">
+                        <h3 className="font-semibold text-gray-800">
+                            {item.disease_name ||
+                                item.chronic_disease_name ||
+                                item.disease?.name ||
+                                item.name ||
+                                "مرض مزمن"}
+                        </h3>
 
-                    <div>
-
-                        <p className="
-                            font-semibold
-                            text-gray-900
-                        ">
-
-                            {
-                                item.disease_name ||
-                                item.custom_disease_name ||
-                                "مرض غير معروف"
-                            }
-
-                        </p>
-
-
-                        {item.diagnosed_at && (
-
-                            <p className="
-                                mt-1
-                                text-xs
-                                text-gray-500
-                            ">
-
-                                تاريخ التشخيص:{" "}
-                                {item.diagnosed_at}
-
-                            </p>
-
-                        )}
-
-
-                        {item.notes && (
-
-                            <p className="
-                                mt-2
-                                text-sm
-                                text-gray-600
-                            ">
-
-                                {item.notes}
-
-                            </p>
-
-                        )}
-
+                        <InfoGrid
+                            items={[
+                                {
+                                    label: "تاريخ التشخيص",
+                                    value: formatDate(
+                                        item.diagnosed_at ||
+                                        item.diagnosis_date
+                                    ),
+                                },
+                                {
+                                    label: "الحالة",
+                                    value: item.status,
+                                },
+                                {
+                                    label: "ملاحظات",
+                                    value: item.notes,
+                                },
+                            ]}
+                        />
                     </div>
-
                 )}
             />
 
 
-            <section className="
-                rounded-2xl
-                border
-                border-gray-200
-                bg-white
-                p-6
-                shadow-sm
-            ">
-
-                <div className="
-                    flex
-                    flex-col
-                    gap-4
-                    sm:flex-row
-                    sm:items-center
-                    sm:justify-between
-                ">
-
-                    <div className="
-                        flex
-                        items-center
-                        gap-3
-                    ">
-
-                        <div className="
-                            flex
-                            h-10
-                            w-10
-                            items-center
-                            justify-center
-                            rounded-xl
-                            bg-primary-50
-                            text-primary-600
-                        ">
-
-                            <Pill
-                                size={19}
-                            />
-
-                        </div>
-
-                        <div>
-
-                            <h2 className="
-                                font-semibold
-                                text-gray-900
-                            ">
-
-                                الأدوية
-
-                            </h2>
-
-                            <p className="
-                                mt-1
-                                text-xs
-                                text-gray-500
-                            ">
-
-                                إدارة الأدوية الخاصة بالمريض
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
-                    <button
-                        type="button"
-                        onClick={
-                            openMedicationCreate
-                        }
-                        className="
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-2
-                            rounded-xl
-                            bg-primary-600
-                            px-4
-                            py-2.5
-                            text-sm
-                            font-semibold
-                            text-white
-                            transition
-                            hover:bg-primary-700
-                        "
-                    >
-
-                        <Plus
-                            size={17}
-                        />
-
-                        إضافة دواء
-
-                    </button>
-
-                </div>
-
-
-                {!profile.medications ||
-                    profile.medications.length === 0 ? (
-
-                    <div className="
-                        mt-5
-                        rounded-xl
-                        bg-gray-50
-                        p-5
-                        text-center
-                        text-sm
-                        text-gray-500
-                    ">
-
-                        لا توجد أدوية مسجلة.
-
-                    </div>
-
-                ) : (
-
-                    <div className="
-                        mt-5
-                        divide-y
-                        divide-gray-100
-                        rounded-xl
-                        border
-                        border-gray-100
-                    ">
-
-                        {profile.medications.map(
-                            medication => (
-
-                                <div
-                                    key={
-                                        medication.id
-                                    }
-                                    className="
-                                        p-5
-                                    "
-                                >
-
-                                    <div className="
-                                        flex
-                                        flex-col
-                                        gap-4
-                                        sm:flex-row
-                                        sm:items-start
-                                        sm:justify-between
-                                    ">
-
-                                        <div>
-
-                                            <p className="
-                                                font-semibold
-                                                text-gray-900
-                                            ">
-
-                                                {
-                                                    medication.product_name ||
-                                                    "دواء غير معروف"
-                                                }
-
-                                            </p>
-
-
-                                            <div className="
-                                                mt-3
-                                                grid
-                                                gap-2
-                                                text-sm
-                                                text-gray-600
-                                                sm:grid-cols-3
-                                            ">
-
-                                                <span>
-                                                    الجرعة:{" "}
-                                                    {
-                                                        medication.dosage ||
-                                                        "—"
-                                                    }
-                                                </span>
-
-                                                <span>
-                                                    التكرار:{" "}
-                                                    {
-                                                        medication.frequency ||
-                                                        "—"
-                                                    }
-                                                </span>
-
-                                                <span>
-                                                    المدة:{" "}
-                                                    {
-                                                        medication.duration_days ||
-                                                        "—"
-                                                    } يوم
-                                                </span>
-
-                                            </div>
-
-
-                                            {(medication.start_date ||
-                                                medication.end_date) && (
-
-                                                    <p className="
-                                                    mt-2
-                                                    text-xs
-                                                    text-gray-500
-                                                ">
-
-                                                        {
-                                                            medication.start_date ||
-                                                            "—"
-                                                        }
-
-                                                        {" → "}
-
-                                                        {
-                                                            medication.end_date ||
-                                                            "—"
-                                                        }
-
-                                                    </p>
-
-                                                )}
-
-
-                                            {medication.instructions && (
-
-                                                <p className="
-                                                    mt-2
-                                                    text-sm
-                                                    text-gray-600
-                                                ">
-
-                                                    {
-                                                        medication.instructions
-                                                    }
-
-                                                </p>
-
-                                            )}
-
-                                        </div>
-
-
-                                        <div className="
-                                            flex
-                                            shrink-0
-                                            items-center
-                                            gap-2
-                                        ">
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    openMedicationEdit(
-                                                        medication
-                                                    )
-                                                }
-                                                className="
-                                                    rounded-lg
-                                                    border
-                                                    border-gray-200
-                                                    p-2
-                                                    text-gray-500
-                                                    transition
-                                                    hover:bg-gray-50
-                                                "
-                                            >
-
-                                                <Pencil
-                                                    size={16}
-                                                />
-
-                                            </button>
-
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    askDeleteMedication(
-                                                        medication
-                                                    )
-                                                }
-                                                className="
-                                                    rounded-lg
-                                                    border
-                                                    border-red-100
-                                                    p-2
-                                                    text-red-500
-                                                    transition
-                                                    hover:bg-red-50
-                                                "
-                                            >
-
-                                                <Trash2
-                                                    size={16}
-                                                />
-
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
-                                </div>
-
-                            )
-                        )}
-
-                    </div>
-
-                )}
-
-            </section>
-
+            {/* ================================================= */}
+            {/* Medications */}
+            {/* ================================================= */}
 
             <ListSection
-                title="النصائح الطبية"
-                icon={FileText}
-                items={profile.advices}
-                emptyText="لا توجد نصائح طبية مسجلة."
+                title="الأدوية"
+                icon={Pill}
+                items={medications}
+                emptyText="لا توجد أدوية مسجلة."
+                action={
+                    <button
+                        type="button"
+                        onClick={openMedicationCreate}
+                        className={`
+                            ${buttonClass}
+                            bg-purple-700 text-white
+                            hover:bg-purple-800
+                        `}
+                    >
+                        <Plus size={17} />
+                        إضافة دواء
+                    </button>
+                }
                 renderItem={(item) => (
+                    <div className="space-y-4">
+                        <div
+                            className="
+                                flex flex-col gap-3
+                                sm:flex-row sm:items-start
+                                sm:justify-between
+                            "
+                        >
+                            <div>
+                                <h3 className="font-semibold text-gray-800">
+                                    {item.product_name ||
+                                        item.product?.name ||
+                                        item.product ||
+                                        "دواء"}
+                                </h3>
 
-                    <div>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    {item.dosage || "—"}
+                                    {" · "}
+                                    {item.frequency || "—"}
+                                </p>
+                            </div>
 
-                        <p className="
-                            font-semibold
-                            text-gray-900
-                        ">
+                            <div className="flex gap-2">
+                                <IconButton
+                                    label="تعديل الدواء"
+                                    onClick={() =>
+                                        openMedicationEdit(item)
+                                    }
+                                >
+                                    <Pencil size={16} />
+                                </IconButton>
 
-                            {item.title}
+                                <IconButton
+                                    label="حذف الدواء"
+                                    danger
+                                    onClick={() =>
+                                        askDeleteMedication(item)
+                                    }
+                                >
+                                    <Trash2 size={16} />
+                                </IconButton>
+                            </div>
+                        </div>
 
-                        </p>
-
-
-                        <p className="
-                            mt-2
-                            whitespace-pre-wrap
-                            text-sm
-                            text-gray-600
-                        ">
-
-                            {item.content}
-
-                        </p>
-
-
-                        <p className="
-                            mt-2
-                            text-xs
-                            text-gray-400
-                        ">
-
-                            {
-                                item.created_by_name ||
-                                "النظام"
-                            }
-
-                            {" · "}
-
-                            {item.created_at
-                                ? new Date(
-                                    item.created_at
-                                ).toLocaleString(
-                                    "ar-EG"
-                                )
-                                : ""}
-
-                        </p>
-
+                        <InfoGrid
+                            items={[
+                                {
+                                    label: "مدة الاستخدام",
+                                    value: item.duration_days
+                                        ? `${item.duration_days} يوم`
+                                        : "—",
+                                },
+                                {
+                                    label: "تاريخ البداية",
+                                    value: formatDate(
+                                        item.start_date
+                                    ),
+                                },
+                                {
+                                    label: "تاريخ النهاية",
+                                    value: formatDate(
+                                        item.end_date
+                                    ),
+                                },
+                                {
+                                    label: "تعليمات",
+                                    value: item.instructions,
+                                },
+                            ]}
+                        />
                     </div>
-
                 )}
             />
 
+
+            {/* ================================================= */}
+            {/* Advice */}
+            {/* ================================================= */}
+
+            <ListSection
+                title="النصائح والإرشادات"
+                icon={FileText}
+                items={advices}
+                emptyText="لا توجد نصائح مسجلة."
+                renderItem={(item) => (
+                    <div className="space-y-2">
+                        <h3 className="font-semibold text-gray-800">
+                            {item.title || item.advice_title || "نصيحة"}
+                        </h3>
+
+                        <p className="whitespace-pre-wrap text-sm leading-7 text-gray-600">
+                            {item.content ||
+                                item.description ||
+                                item.advice ||
+                                "—"}
+                        </p>
+
+                        <p className="text-xs text-gray-400">
+                            {formatDate(
+                                item.created_at
+                            )}
+                        </p>
+                    </div>
+                )}
+            />
+
+
+            {/* ================================================= */}
+            {/* Visits */}
+            {/* ================================================= */}
 
             <ListSection
                 title="الزيارات"
                 icon={Stethoscope}
-                items={profile.visits}
+                items={visits}
                 emptyText="لا توجد زيارات مسجلة."
                 renderItem={(item) => (
+                    <div className="space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h3 className="font-semibold text-gray-800">
+                                {item.title ||
+                                    item.visit_type ||
+                                    "زيارة"}
+                            </h3>
 
-                    <div>
-
-                        <div className="
-                            flex
-                            flex-wrap
-                            items-center
-                            gap-2
-                        ">
-
-                            <p className="
-                                font-semibold
-                                text-gray-900
-                            ">
-
-                                {
-                                    item.visit_type_display ||
-                                    item.visit_type
-                                }
-
-                            </p>
-
-
-                            {item.created_at && (
-
-                                <span className="
-                                    rounded-full
-                                    bg-gray-100
-                                    px-2.5
-                                    py-1
-                                    text-xs
-                                    text-gray-600
-                                ">
-
-                                    {new Date(
-                                        item.created_at
-                                    ).toLocaleDateString(
-                                        "ar-EG"
-                                    )}
-
-                                </span>
-
-                            )}
-
+                            <span
+                                className="
+                                    rounded-lg bg-purple-50
+                                    px-3 py-1 text-xs
+                                    font-medium text-purple-700
+                                "
+                            >
+                                {formatDate(
+                                    item.visit_date ||
+                                    item.created_at
+                                )}
+                            </span>
                         </div>
 
-
-                        {item.notes && (
-
-                            <p className="
-                                mt-2
-                                text-sm
-                                text-gray-600
-                            ">
-
-                                {item.notes}
-
-                            </p>
-
-                        )}
-
-
-                        <p className="
-                            mt-2
-                            text-xs
-                            text-gray-400
-                        ">
-
-                            بواسطة{" "}
-                            {
-                                item.created_by_name ||
-                                "النظام"
-                            }
-
+                        <p className="whitespace-pre-wrap text-sm leading-7 text-gray-600">
+                            {item.notes ||
+                                item.description ||
+                                "لا توجد ملاحظات."}
                         </p>
 
+                        {item.created_by_name && (
+                            <p className="text-xs text-gray-400">
+                                بواسطة: {item.created_by_name}
+                            </p>
+                        )}
                     </div>
-
                 )}
             />
 
 
-            <section className="
-                rounded-2xl
-                border
-                border-gray-200
-                bg-white
-                p-6
-                shadow-sm
-            ">
+            {/* ================================================= */}
+            {/* Follow-ups */}
+            {/* ================================================= */}
 
-                <div className="
-                    flex
-                    flex-col
-                    gap-4
-                    sm:flex-row
-                    sm:items-center
-                    sm:justify-between
-                ">
-
-                    <div className="
-                        flex
-                        items-center
-                        gap-3
-                    ">
-
-                        <div className="
-                            flex
-                            h-10
-                            w-10
-                            items-center
-                            justify-center
-                            rounded-xl
-                            bg-primary-50
-                            text-primary-600
-                        ">
-
-                            <CalendarDays
-                                size={19}
-                            />
-
-                        </div>
-
-                        <div>
-
-                            <h2 className="
-                                font-semibold
-                                text-gray-900
-                            ">
-
-                                المتابعات
-
-                            </h2>
-
-                            <p className="
-                                mt-1
-                                text-xs
-                                text-gray-500
-                            ">
-
-                                متابعة الحالة الصحية للمريض
-
-                            </p>
-
-                        </div>
-
-                    </div>
-
-
+            <ListSection
+                title="المتابعات الصحية"
+                icon={CalendarDays}
+                items={followUps}
+                emptyText="لا توجد متابعات مسجلة."
+                action={
                     <button
                         type="button"
-                        onClick={
-                            openFollowUpCreate
-                        }
-                        className="
-                            inline-flex
-                            items-center
-                            justify-center
-                            gap-2
-                            rounded-xl
-                            bg-primary-600
-                            px-4
-                            py-2.5
-                            text-sm
-                            font-semibold
-                            text-white
-                            transition
-                            hover:bg-primary-700
-                        "
+                        onClick={openFollowUpCreate}
+                        className={`
+                            ${buttonClass}
+                            bg-purple-700 text-white
+                            hover:bg-purple-800
+                        `}
                     >
-
-                        <Plus
-                            size={17}
-                        />
-
+                        <Plus size={17} />
                         إضافة متابعة
-
                     </button>
+                }
+                renderItem={(item) => (
+                    <div className="space-y-5">
+                        <div
+                            className="
+                                flex flex-col gap-3
+                                sm:flex-row sm:items-start
+                                sm:justify-between
+                            "
+                        >
+                            <div>
+                                <h3 className="font-semibold text-gray-800">
+                                    {FOLLOW_UP_TYPES[
+                                        item.follow_up_type
+                                    ] ||
+                                        item.follow_up_type ||
+                                        "متابعة صحية"}
+                                </h3>
 
-                </div>
+                                <p className="mt-1 text-sm text-gray-500">
+                                    تاريخ المتابعة:{" "}
+                                    {formatDate(
+                                        item.follow_up_date
+                                    )}
+                                </p>
 
+                                {item.next_follow_up_date && (
+                                    <p className="mt-1 text-sm text-gray-500">
+                                        المتابعة القادمة:{" "}
+                                        {formatDate(
+                                            item.next_follow_up_date
+                                        )}
+                                    </p>
+                                )}
+                            </div>
 
-                {!profile.follow_ups ||
-                    profile.follow_ups.length === 0 ? (
-
-                    <div className="
-                        mt-5
-                        rounded-xl
-                        bg-gray-50
-                        p-5
-                        text-center
-                        text-sm
-                        text-gray-500
-                    ">
-
-                        لا توجد متابعات مسجلة.
-
-                    </div>
-
-                ) : (
-
-                    <div className="
-                        mt-5
-                        space-y-4
-                    ">
-
-                        {profile.follow_ups.map(
-                            followUp => (
-
-                                <div
-                                    key={
-                                        followUp.id
+                            <div className="flex gap-2">
+                                <IconButton
+                                    label="تعديل المتابعة"
+                                    onClick={() =>
+                                        openFollowUpEdit(item)
                                     }
-                                    className="
-                                        rounded-xl
-                                        border
-                                        border-gray-100
-                                        p-5
-                                    "
                                 >
+                                    <Pencil size={16} />
+                                </IconButton>
 
-                                    <div className="
-                                        flex
-                                        flex-col
-                                        gap-3
-                                        sm:flex-row
-                                        sm:items-start
-                                        sm:justify-between
-                                    ">
+                                <IconButton
+                                    label="حذف المتابعة"
+                                    danger
+                                    onClick={() =>
+                                        askDeleteFollowUp(item)
+                                    }
+                                >
+                                    <Trash2 size={16} />
+                                </IconButton>
+                            </div>
+                        </div>
 
-                                        <div>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                            <FollowUpMetric
+                                label="الوزن"
+                                value={formatMetric(
+                                    item.weight_kg,
+                                    "كجم"
+                                )}
+                            />
 
-                                            <div className="
-                                                flex
-                                                flex-wrap
-                                                items-center
-                                                gap-2
-                                            ">
+                            <FollowUpMetric
+                                label="الطول"
+                                value={formatMetric(
+                                    item.height_cm,
+                                    "سم"
+                                )}
+                            />
 
-                                                <p className="
-                                                    font-semibold
-                                                    text-gray-900
-                                                ">
+                            <FollowUpMetric
+                                label="تغير الوزن"
+                                value={formatMetric(
+                                    item.weight_change_kg,
+                                    "كجم"
+                                )}
+                            />
 
-                                                    {
-                                                        FOLLOW_UP_TYPES[
-                                                        followUp.follow_up_type
-                                                        ] ||
-                                                        followUp.follow_up_type_display ||
-                                                        followUp.follow_up_type ||
-                                                        "متابعة"
-                                                    }
+                            <FollowUpMetric
+                                label="محيط الخصر"
+                                value={formatMetric(
+                                    item.waist_cm,
+                                    "سم"
+                                )}
+                            />
 
-                                                </p>
+                            <FollowUpMetric
+                                label="ضغط الدم"
+                                value={item.blood_pressure}
+                            />
 
+                            <FollowUpMetric
+                                label="سكر الدم"
+                                value={item.blood_glucose}
+                            />
 
-                                                <span className="
-                                                    rounded-full
-                                                    bg-primary-50
-                                                    px-2.5
-                                                    py-1
-                                                    text-xs
-                                                    font-medium
-                                                    text-primary-700
-                                                ">
+                            <FollowUpMetric
+                                label="أسبوع الحمل"
+                                value={item.pregnancy_week}
+                            />
 
-                                                    {
-                                                        followUp.follow_up_date ||
-                                                        "—"
-                                                    }
+                            <FollowUpMetric
+                                label="مؤشر كتلة الجسم"
+                                value={calculateBMI(
+                                    item.weight_kg,
+                                    item.height_cm
+                                )}
+                            />
+                        </div>
 
-                                                </span>
+                        <div className="space-y-3">
+                            <FollowUpText
+                                label="الهدف"
+                                value={item.goal}
+                            />
 
-                                            </div>
+                            <FollowUpText
+                                label="التقدم"
+                                value={item.progress}
+                            />
 
+                            <FollowUpText
+                                label="الأعراض"
+                                value={item.symptoms}
+                            />
 
-                                            {followUp.next_follow_up_date && (
+                            <FollowUpText
+                                label="ملاحظات المريض"
+                                value={item.customer_notes}
+                            />
 
-                                                <p className="
-                                                    mt-2
-                                                    text-xs
-                                                    text-gray-500
-                                                ">
+                            <FollowUpText
+                                label="ملاحظات الصيدلي"
+                                value={item.pharmacist_notes}
+                            />
 
-                                                    المتابعة القادمة:{" "}
-                                                    {
-                                                        followUp.next_follow_up_date
-                                                    }
+                            <FollowUpText
+                                label="التوصيات"
+                                value={item.recommendations}
+                            />
+                        </div>
 
-                                                </p>
+                        <div className="border-t border-gray-100 pt-4">
+                            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                                <h4 className="font-semibold text-gray-800">
+                                    المنتجات المرتبطة بالمتابعة
+                                </h4>
 
-                                            )}
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        openProductCreate(item)
+                                    }
+                                    className={`
+                                        ${buttonClass}
+                                        border border-purple-200
+                                        bg-purple-50 text-purple-700
+                                        hover:bg-purple-100
+                                    `}
+                                >
+                                    <Plus size={16} />
+                                    إضافة منتج
+                                </button>
+                            </div>
 
-                                        </div>
-
-
-                                        <div className="
-                                            flex
-                                            shrink-0
-                                            items-center
-                                            gap-2
-                                        ">
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    openFollowUpEdit(
-                                                        followUp
-                                                    )
-                                                }
+                            {Array.isArray(item.products) &&
+                                item.products.length > 0 ? (
+                                <div className="space-y-3">
+                                    {item.products.map(
+                                        (product) => (
+                                            <div
+                                                key={product.id}
                                                 className="
-                                                    rounded-lg
-                                                    border
-                                                    border-gray-200
-                                                    p-2
-                                                    text-gray-500
-                                                    transition
-                                                    hover:bg-gray-50
+                                                    flex flex-col
+                                                    gap-3 rounded-xl
+                                                    border border-gray-100
+                                                    bg-gray-50 p-4
+                                                    sm:flex-row
+                                                    sm:items-center
+                                                    sm:justify-between
                                                 "
                                             >
+                                                <div className="flex items-start gap-3">
+                                                    <div
+                                                        className="
+                                                            flex h-10 w-10
+                                                            shrink-0 items-center
+                                                            justify-center
+                                                            rounded-xl bg-white
+                                                            text-purple-700
+                                                        "
+                                                    >
+                                                        <Package
+                                                            size={19}
+                                                        />
+                                                    </div>
 
-                                                <Pencil
-                                                    size={16}
-                                                />
+                                                    <div>
+                                                        <p className="font-medium text-gray-800">
+                                                            {product.product_name ||
+                                                                product.product?.name ||
+                                                                product.product ||
+                                                                "منتج"}
+                                                        </p>
 
-                                            </button>
+                                                        <p className="mt-1 text-xs text-gray-500">
+                                                            {USAGE_TYPES[
+                                                                product.usage_type
+                                                            ] ||
+                                                                product.usage_type}
+                                                        </p>
 
+                                                        {(product.dosage ||
+                                                            product.frequency) && (
+                                                                <p className="mt-1 text-sm text-gray-500">
+                                                                    {product.dosage}
+                                                                    {product.dosage &&
+                                                                        product.frequency &&
+                                                                        " · "}
+                                                                    {product.frequency}
+                                                                </p>
+                                                            )}
 
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    askDeleteFollowUp(
-                                                        followUp
-                                                    )
-                                                }
-                                                className="
-                                                    rounded-lg
-                                                    border
-                                                    border-red-100
-                                                    p-2
-                                                    text-red-500
-                                                    transition
-                                                    hover:bg-red-50
-                                                "
-                                            >
+                                                        {product.instructions && (
+                                                            <p className="mt-1 text-sm text-gray-500">
+                                                                {product.instructions}
+                                                            </p>
+                                                        )}
+                                                    </div>
+                                                </div>
 
-                                                <Trash2
-                                                    size={16}
-                                                />
+                                                <div className="flex gap-2">
+                                                    <IconButton
+                                                        label="تعديل المنتج"
+                                                        onClick={() =>
+                                                            openProductEdit(
+                                                                item,
+                                                                product
+                                                            )
+                                                        }
+                                                    >
+                                                        <Pencil
+                                                            size={16}
+                                                        />
+                                                    </IconButton>
 
-                                            </button>
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div className="
-                                        mt-5
-                                        grid
-                                        gap-4
-                                        sm:grid-cols-2
-                                        lg:grid-cols-4
-                                    ">
-
-                                        <FollowUpMetric
-                                            label="الوزن"
-                                            value={
-                                                followUp.weight_kg
-                                                    ? `${followUp.weight_kg} كجم`
-                                                    : null
-                                            }
-                                        />
-
-                                        <FollowUpMetric
-                                            label="الطول"
-                                            value={
-                                                followUp.height_cm
-                                                    ? `${followUp.height_cm} سم`
-                                                    : null
-                                            }
-                                        />
-
-                                        <FollowUpMetric
-                                            label="تغير الوزن"
-                                            value={
-                                                followUp.weight_change_kg !==
-                                                    null &&
-                                                    followUp.weight_change_kg !==
-                                                    undefined
-                                                    ? `${followUp.weight_change_kg} كجم`
-                                                    : null
-                                            }
-                                        />
-
-                                        <FollowUpMetric
-                                            label="محيط الخصر"
-                                            value={
-                                                followUp.waist_cm
-                                                    ? `${followUp.waist_cm} سم`
-                                                    : null
-                                            }
-                                        />
-
-                                        <FollowUpMetric
-                                            label="ضغط الدم"
-                                            value={
-                                                followUp.blood_pressure
-                                            }
-                                        />
-
-                                        <FollowUpMetric
-                                            label="سكر الدم"
-                                            value={
-                                                followUp.blood_glucose
-                                            }
-                                        />
-
-                                        <FollowUpMetric
-                                            label="أسبوع الحمل"
-                                            value={
-                                                followUp.pregnancy_week
-                                            }
-                                        />
-
-                                        <FollowUpMetric
-                                            label="BMI"
-                                            value={
-                                                followUp.bmi
-                                            }
-                                        />
-
-                                    </div>
-
-
-                                    <div className="
-                                        mt-4
-                                        grid
-                                        gap-4
-                                        sm:grid-cols-2
-                                    ">
-
-                                        <FollowUpText
-                                            label="الهدف"
-                                            value={
-                                                followUp.goal
-                                            }
-                                        />
-
-                                        <FollowUpText
-                                            label="التقدم"
-                                            value={
-                                                followUp.progress
-                                            }
-                                        />
-
-                                        <FollowUpText
-                                            label="الأعراض"
-                                            value={
-                                                followUp.symptoms
-                                            }
-                                        />
-
-                                        <FollowUpText
-                                            label="ملاحظات العميل"
-                                            value={
-                                                followUp.customer_notes
-                                            }
-                                        />
-
-                                        <FollowUpText
-                                            label="ملاحظات الصيدلي"
-                                            value={
-                                                followUp.pharmacist_notes
-                                            }
-                                        />
-
-                                        <FollowUpText
-                                            label="التوصيات"
-                                            value={
-                                                followUp.recommendations
-                                            }
-                                        />
-
-                                    </div>
-
-
-                                    <div className="
-                                        mt-5
-                                        rounded-xl
-                                        border
-                                        border-gray-100
-                                        bg-gray-50
-                                        p-4
-                                    ">
-
-                                        <div className="
-                                            flex
-                                            flex-col
-                                            gap-3
-                                            sm:flex-row
-                                            sm:items-center
-                                            sm:justify-between
-                                        ">
-
-                                            <div className="
-                                                flex
-                                                items-center
-                                                gap-2
-                                            ">
-
-                                                <Package
-                                                    size={17}
-                                                    className="text-primary-600"
-                                                />
-
-                                                <h3 className="
-                                                    text-sm
-                                                    font-semibold
-                                                    text-gray-900
-                                                ">
-
-                                                    المنتجات المرتبطة
-
-                                                </h3>
-
+                                                    <IconButton
+                                                        label="حذف المنتج"
+                                                        danger
+                                                        onClick={() =>
+                                                            askDeleteProduct(
+                                                                product
+                                                            )
+                                                        }
+                                                    >
+                                                        <Trash2
+                                                            size={16}
+                                                        />
+                                                    </IconButton>
+                                                </div>
                                             </div>
-
-
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    openProductCreate(
-                                                        followUp
-                                                    )
-                                                }
-                                                className="
-                                                    inline-flex
-                                                    items-center
-                                                    justify-center
-                                                    gap-2
-                                                    rounded-lg
-                                                    bg-white
-                                                    px-3
-                                                    py-2
-                                                    text-xs
-                                                    font-semibold
-                                                    text-primary-600
-                                                    ring-1
-                                                    ring-primary-100
-                                                    transition
-                                                    hover:bg-primary-50
-                                                "
-                                            >
-
-                                                <Plus
-                                                    size={14}
-                                                />
-
-                                                إضافة منتج
-
-                                            </button>
-
-                                        </div>
-
-
-                                        {followUp.products &&
-                                            followUp.products.length >
-                                            0 ? (
-
-                                            <div className="
-                                                mt-3
-                                                space-y-3
-                                            ">
-
-                                                {followUp.products.map(
-                                                    product => (
-
-                                                        <div
-                                                            key={
-                                                                product.id
-                                                            }
-                                                            className="
-                                                                rounded-lg
-                                                                border
-                                                                border-gray-100
-                                                                bg-white
-                                                                p-3
-                                                            "
-                                                        >
-
-                                                            <div className="
-                                                                flex
-                                                                flex-col
-                                                                gap-3
-                                                                sm:flex-row
-                                                                sm:items-start
-                                                                sm:justify-between
-                                                            ">
-
-                                                                <div>
-
-                                                                    <div className="
-                                                                        flex
-                                                                        flex-wrap
-                                                                        items-center
-                                                                        gap-2
-                                                                    ">
-
-                                                                        <p className="
-                                                                            font-medium
-                                                                            text-gray-900
-                                                                        ">
-
-                                                                            {
-                                                                                product.product_name ||
-                                                                                "منتج"
-                                                                            }
-
-                                                                        </p>
-
-
-                                                                        <span className="
-                                                                            rounded-full
-                                                                            bg-primary-50
-                                                                            px-2.5
-                                                                            py-1
-                                                                            text-[11px]
-                                                                            font-medium
-                                                                            text-primary-700
-                                                                        ">
-
-                                                                            {
-                                                                                USAGE_TYPES[
-                                                                                product.usage_type
-                                                                                ] ||
-                                                                                product.usage_type ||
-                                                                                "—"
-                                                                            }
-
-                                                                        </span>
-
-                                                                    </div>
-
-
-                                                                    <div className="
-                                                                        mt-2
-                                                                        grid
-                                                                        gap-2
-                                                                        text-xs
-                                                                        text-gray-600
-                                                                        sm:grid-cols-2
-                                                                        lg:grid-cols-4
-                                                                    ">
-
-                                                                        <span>
-                                                                            الجرعة:{" "}
-                                                                            {
-                                                                                product.dosage ||
-                                                                                "—"
-                                                                            }
-                                                                        </span>
-
-                                                                        <span>
-                                                                            التكرار:{" "}
-                                                                            {
-                                                                                product.frequency ||
-                                                                                "—"
-                                                                            }
-                                                                        </span>
-
-                                                                        <span>
-                                                                            بدأ:{" "}
-                                                                            {
-                                                                                product.started_at ||
-                                                                                "—"
-                                                                            }
-                                                                        </span>
-
-                                                                        <span>
-                                                                            توقف:{" "}
-                                                                            {
-                                                                                product.stopped_at ||
-                                                                                "—"
-                                                                            }
-                                                                        </span>
-
-                                                                    </div>
-
-
-                                                                    {product.instructions && (
-
-                                                                        <p className="
-                                                                            mt-2
-                                                                            text-xs
-                                                                            text-gray-600
-                                                                        ">
-
-                                                                            التعليمات:{" "}
-                                                                            {
-                                                                                product.instructions
-                                                                            }
-
-                                                                        </p>
-
-                                                                    )}
-
-
-                                                                    {product.notes && (
-
-                                                                        <p className="
-                                                                            mt-2
-                                                                            text-xs
-                                                                            text-gray-600
-                                                                        ">
-
-                                                                            ملاحظات:{" "}
-                                                                            {
-                                                                                product.notes
-                                                                            }
-
-                                                                        </p>
-
-                                                                    )}
-
-                                                                </div>
-
-
-                                                                <div className="
-                                                                    flex
-                                                                    shrink-0
-                                                                    items-center
-                                                                    gap-2
-                                                                ">
-
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            openProductEdit(
-                                                                                followUp,
-                                                                                product
-                                                                            )
-                                                                        }
-                                                                        className="
-                                                                            rounded-lg
-                                                                            border
-                                                                            border-gray-200
-                                                                            p-2
-                                                                            text-gray-500
-                                                                            transition
-                                                                            hover:bg-gray-50
-                                                                        "
-                                                                    >
-
-                                                                        <Pencil
-                                                                            size={14}
-                                                                        />
-
-                                                                    </button>
-
-
-                                                                    <button
-                                                                        type="button"
-                                                                        onClick={() =>
-                                                                            askDeleteProduct(
-                                                                                followUp,
-                                                                                product
-                                                                            )
-                                                                        }
-                                                                        className="
-                                                                            rounded-lg
-                                                                            border
-                                                                            border-red-100
-                                                                            p-2
-                                                                            text-red-500
-                                                                            transition
-                                                                            hover:bg-red-50
-                                                                        "
-                                                                    >
-
-                                                                        <Trash2
-                                                                            size={14}
-                                                                        />
-
-                                                                    </button>
-
-                                                                </div>
-
-                                                            </div>
-
-                                                        </div>
-
-                                                    )
-                                                )}
-
-                                            </div>
-
-                                        ) : (
-
-                                            <div className="
-                                                mt-3
-                                                rounded-lg
-                                                bg-white
-                                                p-4
-                                                text-center
-                                                text-xs
-                                                text-gray-500
-                                            ">
-
-                                                لا توجد منتجات مرتبطة بهذه المتابعة.
-
-                                            </div>
-
-                                        )}
-
-                                    </div>
-
-
-                                    <div className="
-                                        mt-4
-                                        flex
-                                        items-center
-                                        gap-2
-                                        text-xs
-                                        text-gray-400
-                                    ">
-
-                                        <UserRound
-                                            size={14}
-                                        />
-
-                                        بواسطة{" "}
-                                        {
-                                            followUp.created_by_name ||
-                                            "النظام"
-                                        }
-
-                                        {followUp.created_at && (
-
-                                            <>
-                                                {" · "}
-                                                {
-                                                    new Date(
-                                                        followUp.created_at
-                                                    ).toLocaleString(
-                                                        "ar-EG"
-                                                    )
-                                                }
-                                            </>
-
-                                        )}
-
-                                    </div>
-
+                                        )
+                                    )}
                                 </div>
-
-                            )
-                        )}
-
+                            ) : (
+                                <p className="rounded-xl bg-gray-50 p-4 text-sm text-gray-500">
+                                    لا توجد منتجات مرتبطة بهذه المتابعة.
+                                </p>
+                            )}
+                        </div>
                     </div>
-
                 )}
-
-            </section>
-
-
-            <ConfirmDialog
-                open={deleteOpen}
-                onClose={() => {
-
-                    if (!deleteLoading) {
-
-                        setDeleteOpen(false);
-
-                        setDeleteTarget(null);
-
-                    }
-
-                }}
-                onConfirm={handleDelete}
-                loading={deleteLoading}
-                title={
-                    deleteTarget?.type ===
-                        "medication"
-                        ? "حذف الدواء"
-                        : deleteTarget?.type ===
-                            "followup"
-                            ? "حذف المتابعة"
-                            : deleteTarget?.type ===
-                                "product"
-                                ? "حذف المنتج"
-                                : "حذف الملف الصحي"
-                }
-                message={
-                    deleteTarget?.type ===
-                        "medication"
-                        ? "هل أنت متأكد أنك تريد حذف هذا الدواء؟"
-                        : deleteTarget?.type ===
-                            "followup"
-                            ? "هل أنت متأكد أنك تريد حذف هذه المتابعة؟ سيتم حذف المنتجات المرتبطة بها."
-                            : deleteTarget?.type ===
-                                "product"
-                                ? "هل أنت متأكد أنك تريد حذف هذا المنتج من المتابعة؟"
-                                : "هل أنت متأكد أنك تريد حذف هذا الملف الصحي؟ لا يمكن التراجع عن هذا الإجراء."
-                }
             />
 
 
-            {medicationModal && (
+            {/* ================================================= */}
+            {/* Medication Modal */}
+            {/* ================================================= */}
 
+            {medicationModal && (
                 <Modal
                     title={
                         editingMedication
                             ? "تعديل الدواء"
                             : "إضافة دواء"
                     }
-                    onClose={
-                        closeMedicationModal
+                    onClose={() =>
+                        closeMedicationModal()
                     }
-                    loading={
-                        medicationLoading
-                    }
+                    loading={medicationLoading}
                 >
-
                     <form
-                        onSubmit={
-                            handleMedicationSubmit
-                        }
-                        className="space-y-5"
+                        onSubmit={submitMedication}
+                        className="space-y-4"
                     >
-
                         <FormField
-                            label="المنتج"
+                            label="رقم المنتج"
                             required
                         >
-
                             <input
-                                name="product"
                                 type="number"
-                                value={
-                                    medicationForm.product
+                                min="1"
+                                value={medicationForm.product}
+                                onChange={(event) =>
+                                    setMedicationForm({
+                                        ...medicationForm,
+                                        product: event.target.value,
+                                    })
                                 }
-                                onChange={
-                                    handleMedicationChange
-                                }
-                                placeholder="رقم المنتج"
-                                className={
-                                    inputClass
-                                }
+                                className={inputClass}
+                                placeholder="أدخل رقم المنتج"
+                                required
                             />
-
                         </FormField>
 
-
-                        <div className="
-                            grid
-                            gap-4
-                            sm:grid-cols-2
-                        ">
-
-                            <FormField
-                                label="الجرعة"
+                        <FormField
+                            label="الجرعة"
+                            required
+                        >
+                            <input
+                                value={medicationForm.dosage}
+                                onChange={(event) =>
+                                    setMedicationForm({
+                                        ...medicationForm,
+                                        dosage: event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                                placeholder="مثال: قرص واحد"
                                 required
-                            >
+                            />
+                        </FormField>
 
-                                <input
-                                    name="dosage"
-                                    value={
-                                        medicationForm.dosage
-                                    }
-                                    onChange={
-                                        handleMedicationChange
-                                    }
-                                    placeholder="مثال: قرص واحد"
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-
-                            <FormField
-                                label="التكرار"
+                        <FormField
+                            label="معدل الاستخدام"
+                            required
+                        >
+                            <input
+                                value={medicationForm.frequency}
+                                onChange={(event) =>
+                                    setMedicationForm({
+                                        ...medicationForm,
+                                        frequency: event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                                placeholder="مثال: مرتين يوميًا"
                                 required
-                            >
+                            />
+                        </FormField>
 
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <FormField label="مدة الاستخدام بالأيام">
                                 <input
-                                    name="frequency"
-                                    value={
-                                        medicationForm.frequency
-                                    }
-                                    onChange={
-                                        handleMedicationChange
-                                    }
-                                    placeholder="مثال: 3 مرات يوميًا"
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-
-                            <FormField
-                                label="المدة بالأيام"
-                            >
-
-                                <input
-                                    name="duration_days"
                                     type="number"
                                     min="1"
                                     value={
                                         medicationForm.duration_days
                                     }
-                                    onChange={
-                                        handleMedicationChange
+                                    onChange={(event) =>
+                                        setMedicationForm({
+                                            ...medicationForm,
+                                            duration_days:
+                                                event.target.value,
+                                        })
                                     }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="تاريخ البداية"
-                            >
-
+                            <FormField label="تاريخ البداية">
                                 <input
-                                    name="start_date"
                                     type="date"
                                     value={
                                         medicationForm.start_date
                                     }
-                                    onChange={
-                                        handleMedicationChange
+                                    onChange={(event) =>
+                                        setMedicationForm({
+                                            ...medicationForm,
+                                            start_date:
+                                                event.target.value,
+                                        })
                                     }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
-
                         </div>
 
-
-                        <FormField
-                            label="التعليمات"
-                        >
-
+                        <FormField label="تعليمات إضافية">
                             <textarea
-                                name="instructions"
-                                rows="4"
+                                rows={3}
                                 value={
                                     medicationForm.instructions
                                 }
-                                onChange={
-                                    handleMedicationChange
+                                onChange={(event) =>
+                                    setMedicationForm({
+                                        ...medicationForm,
+                                        instructions:
+                                            event.target.value,
+                                    })
                                 }
-                                className={
-                                    inputClass
-                                }
+                                className={inputClass}
                             />
-
                         </FormField>
 
-
                         <ModalActions
-                            onCancel={
-                                closeMedicationModal
+                            onCancel={() =>
+                                closeMedicationModal()
                             }
-                            loading={
-                                medicationLoading
-                            }
+                            loading={medicationLoading}
                             submitLabel={
                                 editingMedication
                                     ? "حفظ التعديلات"
                                     : "إضافة الدواء"
                             }
                         />
-
                     </form>
-
                 </Modal>
-
             )}
 
 
-            {followUpModal && (
+            {/* ================================================= */}
+            {/* Follow-up Modal */}
+            {/* ================================================= */}
 
+            {followUpModal && (
                 <Modal
                     title={
                         editingFollowUp
                             ? "تعديل المتابعة"
                             : "إضافة متابعة"
                     }
-                    onClose={
-                        closeFollowUpModal
+                    onClose={() =>
+                        closeFollowUpModal()
                     }
-                    loading={
-                        followUpLoading
-                    }
+                    loading={followUpLoading}
                     large
                 >
-
                     <form
-                        onSubmit={
-                            handleFollowUpSubmit
-                        }
+                        onSubmit={submitFollowUp}
                         className="space-y-5"
                     >
-
-                        <div className="
-                            grid
-                            gap-4
-                            sm:grid-cols-2
-                        ">
-
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <FormField
                                 label="نوع المتابعة"
                                 required
                             >
-
                                 <select
-                                    name="follow_up_type"
                                     value={
                                         followUpForm.follow_up_type
                                     }
-                                    onChange={
-                                        handleFollowUpChange
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            follow_up_type:
+                                                event.target.value,
+                                        })
                                     }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
+                                    required
                                 >
-
                                     <option value="">
-                                        اختر النوع
+                                        اختر نوع المتابعة
                                     </option>
 
                                     {Object.entries(
                                         FOLLOW_UP_TYPES
-                                    ).map(
-                                        ([
-                                            value,
-                                            label,
-                                        ]) => (
-
-                                            <option
-                                                key={
-                                                    value
-                                                }
-                                                value={
-                                                    value
-                                                }
-                                            >
-                                                {label}
-                                            </option>
-
-                                        )
-                                    )}
-
+                                    ).map(([value, label]) => (
+                                        <option
+                                            key={value}
+                                            value={value}
+                                        >
+                                            {label}
+                                        </option>
+                                    ))}
                                 </select>
-
                             </FormField>
-
 
                             <FormField
                                 label="تاريخ المتابعة"
                                 required
                             >
-
                                 <input
                                     type="date"
-                                    name="follow_up_date"
                                     value={
                                         followUpForm.follow_up_date
                                     }
-                                    onChange={
-                                        handleFollowUpChange
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            follow_up_date:
+                                                event.target.value,
+                                        })
                                     }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
+                                    required
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="المتابعة القادمة"
-                            >
-
+                            <FormField label="المتابعة القادمة">
                                 <input
                                     type="date"
-                                    name="next_follow_up_date"
                                     value={
                                         followUpForm.next_follow_up_date
                                     }
-                                    onChange={
-                                        handleFollowUpChange
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            next_follow_up_date:
+                                                event.target.value,
+                                        })
                                     }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="الوزن كجم"
-                            >
-
+                            <FormField label="الوزن بالكيلوجرام">
                                 <input
                                     type="number"
                                     step="0.01"
-                                    name="weight_kg"
-                                    value={
-                                        followUpForm.weight_kg
+                                    min="0"
+                                    value={followUpForm.weight_kg}
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            weight_kg:
+                                                event.target.value,
+                                        })
                                     }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="الطول سم"
-                            >
-
+                            <FormField label="الطول بالسنتيمتر">
                                 <input
                                     type="number"
                                     step="0.01"
-                                    name="height_cm"
-                                    value={
-                                        followUpForm.height_cm
+                                    min="0"
+                                    value={followUpForm.height_cm}
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            height_cm:
+                                                event.target.value,
+                                        })
                                     }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="تغير الوزن كجم"
-                            >
-
+                            <FormField label="تغير الوزن بالكيلوجرام">
                                 <input
                                     type="number"
                                     step="0.01"
-                                    name="weight_change_kg"
                                     value={
                                         followUpForm.weight_change_kg
                                     }
-                                    onChange={
-                                        handleFollowUpChange
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            weight_change_kg:
+                                                event.target.value,
+                                        })
                                     }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="محيط الخصر سم"
-                            >
-
+                            <FormField label="محيط الخصر بالسنتيمتر">
                                 <input
                                     type="number"
                                     step="0.01"
-                                    name="waist_cm"
-                                    value={
-                                        followUpForm.waist_cm
+                                    min="0"
+                                    value={followUpForm.waist_cm}
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            waist_cm:
+                                                event.target.value,
+                                        })
                                     }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="ضغط الدم"
-                            >
-
+                            <FormField label="ضغط الدم">
                                 <input
-                                    name="blood_pressure"
                                     value={
                                         followUpForm.blood_pressure
                                     }
-                                    onChange={
-                                        handleFollowUpChange
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            blood_pressure:
+                                                event.target.value,
+                                        })
                                     }
-                                    placeholder="120/80"
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
+                                    placeholder="مثال: 120/80"
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="سكر الدم"
-                            >
-
+                            <FormField label="سكر الدم">
                                 <input
-                                    name="blood_glucose"
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
                                     value={
                                         followUpForm.blood_glucose
                                     }
-                                    onChange={
-                                        handleFollowUpChange
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            blood_glucose:
+                                                event.target.value,
+                                        })
                                     }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="أسبوع الحمل"
-                            >
-
+                            <FormField label="أسبوع الحمل">
                                 <input
                                     type="number"
                                     min="1"
                                     max="45"
-                                    name="pregnancy_week"
                                     value={
                                         followUpForm.pregnancy_week
                                     }
-                                    onChange={
-                                        handleFollowUpChange
+                                    onChange={(event) =>
+                                        setFollowUpForm({
+                                            ...followUpForm,
+                                            pregnancy_week:
+                                                event.target.value,
+                                        })
                                     }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
-
                         </div>
 
+                        <FormField label="الهدف">
+                            <textarea
+                                rows={2}
+                                value={followUpForm.goal}
+                                onChange={(event) =>
+                                    setFollowUpForm({
+                                        ...followUpForm,
+                                        goal: event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                            />
+                        </FormField>
 
-                        <div className="
-                            grid
-                            gap-4
-                            sm:grid-cols-2
-                        ">
+                        <FormField label="التقدم">
+                            <textarea
+                                rows={2}
+                                value={followUpForm.progress}
+                                onChange={(event) =>
+                                    setFollowUpForm({
+                                        ...followUpForm,
+                                        progress: event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                            />
+                        </FormField>
 
-                            <FormField
-                                label="الهدف"
-                            >
+                        <FormField label="الأعراض">
+                            <textarea
+                                rows={2}
+                                value={followUpForm.symptoms}
+                                onChange={(event) =>
+                                    setFollowUpForm({
+                                        ...followUpForm,
+                                        symptoms: event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                            />
+                        </FormField>
 
-                                <textarea
-                                    name="goal"
-                                    rows="3"
-                                    value={
-                                        followUpForm.goal
-                                    }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
-                                />
+                        <FormField label="ملاحظات المريض">
+                            <textarea
+                                rows={2}
+                                value={
+                                    followUpForm.customer_notes
+                                }
+                                onChange={(event) =>
+                                    setFollowUpForm({
+                                        ...followUpForm,
+                                        customer_notes:
+                                            event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                            />
+                        </FormField>
 
-                            </FormField>
+                        <FormField label="ملاحظات الصيدلي">
+                            <textarea
+                                rows={2}
+                                value={
+                                    followUpForm.pharmacist_notes
+                                }
+                                onChange={(event) =>
+                                    setFollowUpForm({
+                                        ...followUpForm,
+                                        pharmacist_notes:
+                                            event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                            />
+                        </FormField>
 
-
-                            <FormField
-                                label="التقدم"
-                            >
-
-                                <textarea
-                                    name="progress"
-                                    rows="3"
-                                    value={
-                                        followUpForm.progress
-                                    }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-
-                            <FormField
-                                label="الأعراض"
-                            >
-
-                                <textarea
-                                    name="symptoms"
-                                    rows="3"
-                                    value={
-                                        followUpForm.symptoms
-                                    }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-
-                            <FormField
-                                label="ملاحظات العميل"
-                            >
-
-                                <textarea
-                                    name="customer_notes"
-                                    rows="3"
-                                    value={
-                                        followUpForm.customer_notes
-                                    }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-
-                            <FormField
-                                label="ملاحظات الصيدلي"
-                            >
-
-                                <textarea
-                                    name="pharmacist_notes"
-                                    rows="3"
-                                    value={
-                                        followUpForm.pharmacist_notes
-                                    }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-
-                            <FormField
-                                label="التوصيات"
-                            >
-
-                                <textarea
-                                    name="recommendations"
-                                    rows="3"
-                                    value={
-                                        followUpForm.recommendations
-                                    }
-                                    onChange={
-                                        handleFollowUpChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-                        </div>
-
+                        <FormField label="التوصيات">
+                            <textarea
+                                rows={3}
+                                value={
+                                    followUpForm.recommendations
+                                }
+                                onChange={(event) =>
+                                    setFollowUpForm({
+                                        ...followUpForm,
+                                        recommendations:
+                                            event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                            />
+                        </FormField>
 
                         <ModalActions
-                            onCancel={
-                                closeFollowUpModal
+                            onCancel={() =>
+                                closeFollowUpModal()
                             }
-                            loading={
-                                followUpLoading
-                            }
+                            loading={followUpLoading}
                             submitLabel={
                                 editingFollowUp
                                     ? "حفظ التعديلات"
                                     : "إضافة المتابعة"
                             }
                         />
-
                     </form>
-
                 </Modal>
-
             )}
 
 
-            {productModal && (
+            {/* ================================================= */}
+            {/* Follow-up Product Modal */}
+            {/* ================================================= */}
 
+            {productModal && (
                 <Modal
                     title={
                         editingProduct
-                            ? "تعديل المنتج"
+                            ? "تعديل منتج المتابعة"
                             : "إضافة منتج للمتابعة"
                     }
-                    onClose={
-                        closeProductModal
+                    onClose={() =>
+                        closeProductModal()
                     }
-                    loading={
-                        productLoading
-                    }
+                    loading={productLoading}
                 >
-
                     <form
-                        onSubmit={
-                            handleProductSubmit
-                        }
-                        className="space-y-5"
+                        onSubmit={submitProduct}
+                        className="space-y-4"
                     >
-
                         <FormField
-                            label="المنتج"
+                            label="رقم المنتج"
                             required
                         >
-
                             <input
-                                name="product"
                                 type="number"
-                                value={
-                                    productForm.product
+                                min="1"
+                                value={productForm.product}
+                                onChange={(event) =>
+                                    setProductForm({
+                                        ...productForm,
+                                        product: event.target.value,
+                                    })
                                 }
-                                onChange={
-                                    handleProductChange
-                                }
-                                placeholder="رقم المنتج"
-                                className={
-                                    inputClass
-                                }
+                                className={inputClass}
+                                placeholder="أدخل رقم المنتج"
+                                required
                             />
-
                         </FormField>
 
-
-                        <FormField
-                            label="نوع الاستخدام"
-                        >
-
+                        <FormField label="حالة الاستخدام">
                             <select
-                                name="usage_type"
-                                value={
-                                    productForm.usage_type
+                                value={productForm.usage_type}
+                                onChange={(event) =>
+                                    setProductForm({
+                                        ...productForm,
+                                        usage_type:
+                                            event.target.value,
+                                    })
                                 }
-                                onChange={
-                                    handleProductChange
-                                }
-                                className={
-                                    inputClass
-                                }
+                                className={inputClass}
                             >
-
                                 {Object.entries(
                                     USAGE_TYPES
-                                ).map(
-                                    ([
-                                        value,
-                                        label,
-                                    ]) => (
-
-                                        <option
-                                            key={
-                                                value
-                                            }
-                                            value={
-                                                value
-                                            }
-                                        >
-
-                                            {label}
-
-                                        </option>
-
-                                    )
-                                )}
-
+                                ).map(([value, label]) => (
+                                    <option
+                                        key={value}
+                                        value={value}
+                                    >
+                                        {label}
+                                    </option>
+                                ))}
                             </select>
-
                         </FormField>
 
+                        <FormField label="الجرعة">
+                            <input
+                                value={productForm.dosage}
+                                onChange={(event) =>
+                                    setProductForm({
+                                        ...productForm,
+                                        dosage: event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                            />
+                        </FormField>
 
-                        <div className="
-                            grid
-                            gap-4
-                            sm:grid-cols-2
-                        ">
+                        <FormField label="معدل الاستخدام">
+                            <input
+                                value={productForm.frequency}
+                                onChange={(event) =>
+                                    setProductForm({
+                                        ...productForm,
+                                        frequency: event.target.value,
+                                    })
+                                }
+                                className={inputClass}
+                            />
+                        </FormField>
 
-                            <FormField
-                                label="الجرعة"
-                            >
-
-                                <input
-                                    name="dosage"
-                                    value={
-                                        productForm.dosage
-                                    }
-                                    onChange={
-                                        handleProductChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-
-                            <FormField
-                                label="التكرار"
-                            >
-
-                                <input
-                                    name="frequency"
-                                    value={
-                                        productForm.frequency
-                                    }
-                                    onChange={
-                                        handleProductChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
-                                />
-
-                            </FormField>
-
-
-                            <FormField
-                                label="تاريخ البداية"
-                            >
-
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <FormField label="تاريخ البداية">
                                 <input
                                     type="date"
-                                    name="started_at"
-                                    value={
-                                        productForm.started_at
+                                    value={productForm.started_at}
+                                    onChange={(event) =>
+                                        setProductForm({
+                                            ...productForm,
+                                            started_at:
+                                                event.target.value,
+                                        })
                                     }
-                                    onChange={
-                                        handleProductChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
 
-
-                            <FormField
-                                label="تاريخ التوقف"
-                            >
-
+                            <FormField label="تاريخ التوقف">
                                 <input
                                     type="date"
-                                    name="stopped_at"
-                                    value={
-                                        productForm.stopped_at
+                                    value={productForm.stopped_at}
+                                    onChange={(event) =>
+                                        setProductForm({
+                                            ...productForm,
+                                            stopped_at:
+                                                event.target.value,
+                                        })
                                     }
-                                    onChange={
-                                        handleProductChange
-                                    }
-                                    className={
-                                        inputClass
-                                    }
+                                    className={inputClass}
                                 />
-
                             </FormField>
-
                         </div>
 
-
-                        <FormField
-                            label="التعليمات"
-                        >
-
+                        <FormField label="تعليمات الاستخدام">
                             <textarea
-                                name="instructions"
-                                rows="3"
-                                value={
-                                    productForm.instructions
+                                rows={2}
+                                value={productForm.instructions}
+                                onChange={(event) =>
+                                    setProductForm({
+                                        ...productForm,
+                                        instructions:
+                                            event.target.value,
+                                    })
                                 }
-                                onChange={
-                                    handleProductChange
-                                }
-                                className={
-                                    inputClass
-                                }
+                                className={inputClass}
                             />
-
                         </FormField>
 
-
-                        <FormField
-                            label="ملاحظات"
-                        >
-
+                        <FormField label="ملاحظات">
                             <textarea
-                                name="notes"
-                                rows="3"
-                                value={
-                                    productForm.notes
+                                rows={2}
+                                value={productForm.notes}
+                                onChange={(event) =>
+                                    setProductForm({
+                                        ...productForm,
+                                        notes: event.target.value,
+                                    })
                                 }
-                                onChange={
-                                    handleProductChange
-                                }
-                                className={
-                                    inputClass
-                                }
+                                className={inputClass}
                             />
-
                         </FormField>
-
 
                         <ModalActions
-                            onCancel={
-                                closeProductModal
+                            onCancel={() =>
+                                closeProductModal()
                             }
-                            loading={
-                                productLoading
-                            }
+                            loading={productLoading}
                             submitLabel={
                                 editingProduct
                                     ? "حفظ التعديلات"
                                     : "إضافة المنتج"
                             }
                         />
-
                     </form>
-
                 </Modal>
-
             )}
 
+
+            {/* ================================================= */}
+            {/* Delete Confirmation */}
+            {/* ================================================= */}
+
+            <ConfirmDialog
+                open={deleteOpen}
+                onClose={closeDeleteDialog}
+                onConfirm={handleDelete}
+                loading={deleteLoading}
+                title={getDeleteTitle(deleteTarget)}
+                message={getDeleteMessage(deleteTarget)}
+            />
         </div>
     );
 }
 
 
-function getToday() {
+// =========================================================
+// Helpers
+// =========================================================
 
-    return new Date()
-        .toISOString()
-        .split("T")[0];
+function getToday() {
+    const today = new Date();
+
+    const year = today.getFullYear();
+
+    const month = String(
+        today.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+        today.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
 }
 
 
 function toNumberOrNull(value) {
-
     if (
         value === "" ||
         value === null ||
         value === undefined
     ) {
-
         return null;
-
     }
 
-    const number =
-        Number(value);
+    const number = Number(value);
 
     return Number.isNaN(number)
         ? null
@@ -3940,23 +2495,144 @@ function toNumberOrNull(value) {
 }
 
 
-const inputClass = `
-    w-full
-    rounded-xl
-    border
-    border-gray-200
-    bg-white
-    px-4
-    py-3
-    text-sm
-    text-gray-800
-    outline-none
-    transition
-    focus:border-primary-500
-    focus:ring-2
-    focus:ring-primary-100
-`;
+function formatDate(value) {
+    if (!value) {
+        return "—";
+    }
 
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleDateString("ar-EG");
+}
+
+
+function formatMetric(value, unit = "") {
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
+        return "—";
+    }
+
+    return `${value}${unit ? ` ${unit}` : ""}`;
+}
+
+
+function calculateBMI(weight, height) {
+    const numericWeight = Number(weight);
+
+    const numericHeight = Number(height);
+
+    if (
+        !numericWeight ||
+        !numericHeight ||
+        numericWeight <= 0 ||
+        numericHeight <= 0
+    ) {
+        return "—";
+    }
+
+    const heightInMeters =
+        numericHeight / 100;
+
+    return (
+        numericWeight /
+        (heightInMeters * heightInMeters)
+    ).toFixed(1);
+}
+
+
+function getErrorMessage(error, fallback) {
+    const data = error?.response?.data;
+
+    if (typeof data?.detail === "string") {
+        return data.detail;
+    }
+
+    if (typeof data?.message === "string") {
+        return data.message;
+    }
+
+    if (typeof data === "string") {
+        return data;
+    }
+
+    if (data && typeof data === "object") {
+        const firstKey = Object.keys(data)[0];
+
+        if (firstKey) {
+            const value = data[firstKey];
+
+            if (Array.isArray(value) && value.length) {
+                return String(value[0]);
+            }
+
+            if (typeof value === "string") {
+                return value;
+            }
+        }
+    }
+
+    return fallback;
+}
+
+
+function getDeleteTitle(target) {
+    if (target?.type === "patient") {
+        return "حذف الملف الصحي";
+    }
+
+    if (target?.type === "medication") {
+        return "حذف الدواء";
+    }
+
+    if (target?.type === "followUp") {
+        return "حذف المتابعة";
+    }
+
+    if (target?.type === "product") {
+        return "حذف المنتج";
+    }
+
+    return "تأكيد الحذف";
+}
+
+
+function getDeleteMessage(target) {
+    if (target?.type === "patient") {
+        return (
+            "هل أنت متأكد من حذف الملف الصحي بالكامل؟ " +
+            "لا يمكن التراجع عن هذا الإجراء."
+        );
+    }
+
+    if (target?.type === "medication") {
+        return "هل أنت متأكد من حذف هذا الدواء؟";
+    }
+
+    if (target?.type === "followUp") {
+        return (
+            "هل أنت متأكد من حذف هذه المتابعة " +
+            "وما يرتبط بها من بيانات؟"
+        );
+    }
+
+    if (target?.type === "product") {
+        return "هل أنت متأكد من حذف المنتج من المتابعة؟";
+    }
+
+    return "هل أنت متأكد من تنفيذ عملية الحذف؟";
+}
+
+
+// =========================================================
+// Reusable Components
+// =========================================================
 
 function Modal({
     title,
@@ -3965,91 +2641,63 @@ function Modal({
     loading,
     large = false,
 }) {
-
     return (
-
-        <div className="
-            fixed
-            inset-0
-            z-50
-            flex
-            items-center
-            justify-center
-            bg-black/40
-            p-4
-        ">
-
-            <div className={`
-                w-full
-                max-h-[90vh]
-                overflow-y-auto
-                rounded-2xl
-                bg-white
-                shadow-xl
-                ${large
-                    ? "max-w-4xl"
-                    : "max-w-2xl"
+        <div
+            className="
+                fixed inset-0 z-50
+                flex items-center justify-center
+                overflow-y-auto bg-black/50
+                p-3 sm:p-6
+            "
+            onMouseDown={(event) => {
+                if (
+                    event.target === event.currentTarget &&
+                    !loading
+                ) {
+                    onClose();
                 }
-            `}>
-
-                <div className="
-                    sticky
-                    top-0
-                    z-10
-                    flex
-                    items-center
-                    justify-between
-                    border-b
-                    border-gray-100
-                    bg-white
-                    px-6
-                    py-4
-                ">
-
-                    <h2 className="
-                        text-lg
-                        font-bold
-                        text-gray-900
-                    ">
-
+            }}
+        >
+            <div
+                className={`
+                    my-auto w-full rounded-2xl
+                    bg-white shadow-xl
+                    ${large ? "max-w-3xl" : "max-w-xl"}
+                `}
+                dir="rtl"
+            >
+                <div
+                    className="
+                        flex items-center justify-between
+                        gap-3 border-b border-gray-100
+                        px-5 py-4
+                    "
+                >
+                    <h2 className="text-lg font-bold text-gray-900">
                         {title}
-
                     </h2>
-
 
                     <button
                         type="button"
                         onClick={onClose}
                         disabled={loading}
+                        aria-label="إغلاق"
                         className="
-                            rounded-lg
-                            p-2
-                            text-gray-400
-                            transition
+                            flex h-9 w-9 items-center
+                            justify-center rounded-lg
+                            text-gray-500 transition
                             hover:bg-gray-100
-                            hover:text-gray-600
+                            disabled:opacity-50
                         "
                     >
-
-                        <X
-                            size={19}
-                        />
-
+                        <X size={19} />
                     </button>
-
                 </div>
 
-
-                <div className="
-                    p-6
-                ">
-
+                <div className="max-h-[75vh] overflow-y-auto p-5">
                     {children}
-
                 </div>
-
             </div>
-
         </div>
     );
 }
@@ -4060,39 +2708,19 @@ function FormField({
     children,
     required = false,
 }) {
-
     return (
-
-        <div>
-
-            <label className="
-                mb-2
-                block
-                text-sm
-                font-medium
-                text-gray-700
-            ">
-
+        <div className="space-y-2">
+            <label className="block text-sm font-medium text-gray-700">
                 {label}
 
                 {required && (
-
-                    <span className="
-                        mr-1
-                        text-red-500
-                    ">
-
+                    <span className="mr-1 text-red-500">
                         *
-
                     </span>
-
                 )}
-
             </label>
 
-
             {children}
-
         </div>
     );
 }
@@ -4103,70 +2731,62 @@ function ModalActions({
     loading,
     submitLabel,
 }) {
-
     return (
-
-        <div className="
-            flex
-            flex-col-reverse
-            gap-3
-            border-t
-            border-gray-100
-            pt-5
-            sm:flex-row
-            sm:justify-end
-        ">
-
+        <div className="flex flex-wrap justify-end gap-3 border-t border-gray-100 pt-4">
             <button
                 type="button"
                 onClick={onCancel}
                 disabled={loading}
-                className="
-                    rounded-xl
-                    border
-                    border-gray-200
-                    px-5
-                    py-3
-                    text-sm
-                    font-semibold
-                    text-gray-600
-                    transition
+                className={`
+                    ${buttonClass}
+                    border border-gray-200
+                    bg-white text-gray-600
                     hover:bg-gray-50
-                    disabled:opacity-50
-                "
+                `}
             >
-
                 إلغاء
-
             </button>
-
 
             <button
                 type="submit"
                 disabled={loading}
-                className="
-                    rounded-xl
-                    bg-primary-600
-                    px-5
-                    py-3
-                    text-sm
-                    font-semibold
-                    text-white
-                    transition
-                    hover:bg-primary-700
-                    disabled:cursor-not-allowed
-                    disabled:opacity-50
-                "
+                className={`
+                    ${buttonClass}
+                    bg-purple-700 text-white
+                    hover:bg-purple-800
+                `}
             >
-
-                {loading
-                    ? "جاري الحفظ..."
-                    : submitLabel
-                }
-
+                {loading ? "جارٍ الحفظ..." : submitLabel}
             </button>
-
         </div>
+    );
+}
+
+
+function IconButton({
+    children,
+    label,
+    onClick,
+    danger = false,
+}) {
+    return (
+        <button
+            type="button"
+            title={label}
+            aria-label={label}
+            onClick={onClick}
+            className={`
+                flex h-9 w-9 items-center
+                justify-center rounded-lg
+                border transition
+                ${danger
+                    ? "border-red-100 bg-red-50 text-red-600 hover:bg-red-100"
+                    : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
+                }
+            `}
+        >
+            {children}
+        </button>
     );
 }
 
@@ -4176,53 +2796,24 @@ function InfoItem({
     value,
     icon: Icon,
 }) {
+    const displayValue =
+        value === null ||
+            value === undefined ||
+            value === ""
+            ? "—"
+            : value;
 
     return (
+        <div className="min-w-0 rounded-xl bg-gray-50 p-4">
+            <div className="mb-2 flex items-center gap-2 text-xs font-medium text-gray-500">
+                {Icon && <Icon size={15} />}
 
-        <div>
-
-            <div className="
-                flex
-                items-center
-                gap-2
-            ">
-
-                {Icon && (
-
-                    <Icon
-                        size={15}
-                        className="text-gray-400"
-                    />
-
-                )}
-
-                <p className="
-                    text-xs
-                    font-medium
-                    uppercase
-                    tracking-wide
-                    text-gray-400
-                ">
-
-                    {label}
-
-                </p>
-
+                <span>{label}</span>
             </div>
 
-
-            <p className="
-                mt-1
-                whitespace-pre-wrap
-                text-sm
-                font-medium
-                text-gray-800
-            ">
-
-                {value || "—"}
-
+            <p className="whitespace-pre-wrap break-words text-sm font-medium leading-6 text-gray-800">
+                {displayValue}
             </p>
-
         </div>
     );
 }
@@ -4233,91 +2824,69 @@ function ProfileSection({
     icon: Icon,
     children,
 }) {
-
     return (
-
-        <section className="
-            rounded-2xl
-            border
-            border-gray-200
-            bg-white
-            p-6
-            shadow-sm
-        ">
-
-            <div className="
-                flex
-                items-center
-                gap-3
-            ">
-
-                <div className="
-                    flex
-                    h-10
-                    w-10
-                    items-center
-                    justify-center
-                    rounded-xl
-                    bg-primary-50
-                    text-primary-600
-                ">
-
-                    <Icon
-                        size={19}
-                    />
-
+        <section
+            className="
+                overflow-hidden rounded-2xl
+                border border-gray-100
+                bg-white shadow-sm
+            "
+        >
+            <div
+                className="
+                    flex items-center gap-3
+                    border-b border-gray-100
+                    px-5 py-4
+                "
+            >
+                <div
+                    className="
+                        flex h-10 w-10 items-center
+                        justify-center rounded-xl
+                        bg-purple-50 text-purple-700
+                    "
+                >
+                    <Icon size={20} />
                 </div>
 
-
-                <h2 className="
-                    font-semibold
-                    text-gray-900
-                ">
-
+                <h2 className="font-bold text-gray-900">
                     {title}
-
                 </h2>
-
             </div>
 
-
-            <div className="
-                mt-6
-            ">
-
+            <div className="p-5">
                 {children}
-
             </div>
-
         </section>
     );
 }
 
 
-function InfoGrid({
-    items = [],
-}) {
+function InfoGrid({ items = [] }) {
+    const visibleItems = items.filter(
+        (item) =>
+            item.value !== null &&
+            item.value !== undefined &&
+            item.value !== ""
+    );
+
+    if (!visibleItems.length) {
+        return (
+            <p className="text-sm text-gray-500">
+                لا توجد بيانات مسجلة.
+            </p>
+        );
+    }
 
     return (
-
-        <div className="
-            grid
-            gap-5
-            sm:grid-cols-2
-        ">
-
-            {items.map(
-                ([label, value]) => (
-
-                    <InfoItem
-                        key={label}
-                        label={label}
-                        value={value}
-                    />
-
-                )
-            )}
-
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {visibleItems.map((item, index) => (
+                <InfoItem
+                    key={`${item.label}-${index}`}
+                    label={item.label}
+                    value={item.value}
+                />
+            ))}
         </div>
     );
 }
@@ -4327,38 +2896,15 @@ function FollowUpMetric({
     label,
     value,
 }) {
-
     return (
-
-        <div className="
-            rounded-xl
-            border
-            border-gray-100
-            bg-gray-50
-            p-3
-        ">
-
-            <p className="
-                text-xs
-                text-gray-400
-            ">
-
+        <div className="rounded-xl border border-gray-100 bg-gray-50 p-3">
+            <p className="text-xs text-gray-500">
                 {label}
-
             </p>
 
-
-            <p className="
-                mt-1
-                text-sm
-                font-semibold
-                text-gray-800
-            ">
-
+            <p className="mt-2 break-words text-sm font-semibold text-gray-800">
                 {value || "—"}
-
             </p>
-
         </div>
     );
 }
@@ -4368,45 +2914,23 @@ function FollowUpText({
     label,
     value,
 }) {
-
-    if (!value) {
+    if (
+        value === null ||
+        value === undefined ||
+        value === ""
+    ) {
         return null;
     }
 
-
     return (
-
-        <div className="
-            rounded-xl
-            border
-            border-gray-100
-            bg-gray-50
-            p-4
-        ">
-
-            <p className="
-                text-xs
-                font-medium
-                text-gray-400
-            ">
-
+        <div>
+            <h4 className="mb-1 text-sm font-semibold text-gray-700">
                 {label}
+            </h4>
 
-            </p>
-
-
-            <p className="
-                mt-2
-                whitespace-pre-wrap
-                text-sm
-                leading-6
-                text-gray-700
-            ">
-
+            <p className="whitespace-pre-wrap text-sm leading-7 text-gray-600">
                 {value}
-
             </p>
-
         </div>
     );
 }
@@ -4417,110 +2941,76 @@ function ListSection({
     icon: Icon,
     items = [],
     emptyText,
+    action,
     renderItem,
 }) {
-
     return (
+        <section
+            className="
+                overflow-hidden rounded-2xl
+                border border-gray-100
+                bg-white shadow-sm
+            "
+        >
+            <div
+                className="
+                    flex flex-col gap-3
+                    border-b border-gray-100
+                    px-5 py-4
+                    sm:flex-row sm:items-center
+                    sm:justify-between
+                "
+            >
+                <div className="flex items-center gap-3">
+                    <div
+                        className="
+                            flex h-10 w-10 items-center
+                            justify-center rounded-xl
+                            bg-purple-50 text-purple-700
+                        "
+                    >
+                        <Icon size={20} />
+                    </div>
 
-        <section className="
-            rounded-2xl
-            border
-            border-gray-200
-            bg-white
-            p-6
-            shadow-sm
-        ">
+                    <h2 className="font-bold text-gray-900">
+                        {title}
+                    </h2>
 
-            <div className="
-                flex
-                items-center
-                gap-3
-            ">
-
-                <div className="
-                    flex
-                    h-10
-                    w-10
-                    items-center
-                    justify-center
-                    rounded-xl
-                    bg-primary-50
-                    text-primary-600
-                ">
-
-                    <Icon
-                        size={19}
-                    />
-
+                    <span
+                        className="
+                            rounded-full bg-gray-100
+                            px-2.5 py-1 text-xs
+                            font-semibold text-gray-600
+                        "
+                    >
+                        {items.length}
+                    </span>
                 </div>
 
-
-                <h2 className="
-                    font-semibold
-                    text-gray-900
-                ">
-
-                    {title}
-
-                </h2>
-
+                {action}
             </div>
 
-
-            {!items ||
-                items.length === 0 ? (
-
-                <div className="
-                    mt-5
-                    rounded-xl
-                    bg-gray-50
-                    p-5
-                    text-center
-                    text-sm
-                    text-gray-500
-                ">
-
-                    {emptyText}
-
-                </div>
-
-            ) : (
-
-                <div className="
-                    mt-5
-                    divide-y
-                    divide-gray-100
-                    rounded-xl
-                    border
-                    border-gray-100
-                ">
-
-                    {items.map(
-                        (item, index) => (
-
-                            <div
-                                key={
-                                    item.id ||
-                                    index
-                                }
-                                className="
-                                    p-5
-                                "
-                            >
-
-                                {renderItem(
-                                    item
-                                )}
-
-                            </div>
-
-                        )
-                    )}
-
-                </div>
-
-            )}
-
+            <div className="divide-y divide-gray-100">
+                {items.length > 0 ? (
+                    items.map((item, index) => (
+                        <div
+                            key={
+                                item.id ??
+                                `${title}-${index}`
+                            }
+                            className="p-5"
+                        >
+                            {renderItem(item)}
+                        </div>
+                    ))
+                ) : (
+                    <div className="px-5 py-10 text-center">
+                        <p className="text-sm text-gray-500">
+                            {emptyText}
+                        </p>
+                    </div>
+                )}
+            </div>
         </section>
     );
 }

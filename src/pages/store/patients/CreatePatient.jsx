@@ -12,16 +12,21 @@ import {
     Baby,
     Apple,
     ArrowRight,
+    ArrowRightLeft,
     Loader2,
     Stethoscope,
     Search,
+    Droplets,
+    Utensils,
+    Weight,
+    FileText,
+    ShieldCheck,
 } from "lucide-react";
 
 import {
     createPatient,
     getPatientDetails,
     updateFitnessProfile,
-    updateNutritionProfile,
     updatePregnancyProfile,
     updateChildProfile,
     getChronicDiseases,
@@ -34,22 +39,23 @@ const initialForm = {
     date_of_birth: "",
     gender: "",
     patient_type: "",
-    is_for_child: false,
     address: "",
+    allergies: "",
+    medical_notes: "",
 
     height_cm: "",
     weight_kg: "",
     fitness_goal: "",
     activity_level: "",
-    fitness_notes: "",
-
-    nutrition_height_cm: "",
-    nutrition_weight_kg: "",
-    target_weight_kg: "",
-    nutrition_goal: "",
+    notes: "",
     dietary_preferences: "",
+    exercise_routine: "",
     food_allergies: "",
+    goal: "",
+    meals_per_day: "",
     nutrition_notes: "",
+    target_weight_kg: "",
+    water_intake_liters: "",
 
     last_menstrual_period: "",
     expected_due_date: "",
@@ -57,11 +63,8 @@ const initialForm = {
     pregnancy_notes: "",
     risk_notes: "",
 
-    guardian_name: "",
-    guardian_phone: "",
     child_height_cm: "",
     child_weight_kg: "",
-    allergies: "",
     child_notes: "",
 
     chronic_disease: "",
@@ -70,12 +73,38 @@ const initialForm = {
     diagnosed_at: "",
 };
 
+const PATIENT_TYPES = [
+    {
+        value: "FITNESS",
+        label: "اللياقة والتغذية",
+        description: "متابعة الوزن والنشاط والنظام الغذائي",
+        icon: Activity,
+    },
+    {
+        value: "CHRONIC",
+        label: "الأمراض المزمنة",
+        description: "تسجيل الأمراض المزمنة ومتابعتها",
+        icon: Stethoscope,
+    },
+    {
+        value: "PREGNANCY",
+        label: "متابعة الحمل",
+        description: "بيانات الحمل ومواعيد المتابعة",
+        icon: HeartPulse,
+    },
+    {
+        value: "CHILD",
+        label: "ملف طفل",
+        description: "متابعة بيانات الطفل الصحية",
+        icon: Baby,
+    },
+];
+
 export default function CreatePatient() {
     const navigate = useNavigate();
 
     const [form, setForm] = useState(initialForm);
     const [loading, setLoading] = useState(false);
-
     const [chronicDiseases, setChronicDiseases] = useState([]);
     const [chronicDiseasesLoading, setChronicDiseasesLoading] =
         useState(false);
@@ -88,21 +117,17 @@ export default function CreatePatient() {
             checked,
         } = event.target;
 
-        setForm((prev) => ({
-            ...prev,
-            [name]:
-                type === "checkbox"
-                    ? checked
-                    : value,
+        setForm((previous) => ({
+            ...previous,
+            [name]: type === "checkbox" ? checked : value,
         }));
     };
 
     const getErrorMessage = (error) => {
-        const data =
-            error?.response?.data;
+        const data = error?.response?.data;
 
         if (!data) {
-            return "حدث خطأ أثناء إنشاء الملف الصحي.";
+            return "تعذر إنشاء الملف الصحي. حاول مرة أخرى.";
         }
 
         if (typeof data === "string") {
@@ -117,341 +142,160 @@ export default function CreatePatient() {
             return data.error;
         }
 
-        const firstError =
-            Object.values(data)[0];
+        const firstError = Object.values(data)[0];
 
         if (Array.isArray(firstError)) {
-            return firstError[0];
+            return String(firstError[0]);
         }
 
         if (typeof firstError === "string") {
             return firstError;
         }
 
-        return "البيانات غير صحيحة.";
+        return "راجع البيانات المدخلة وحاول مرة أخرى.";
     };
 
     useEffect(() => {
-        if (
-            form.patient_type !==
-            "CHRONIC"
-        ) {
+        if (form.patient_type !== "CHRONIC") {
+            setChronicDiseases([]);
             return;
         }
 
-        const loadChronicDiseases =
-            async () => {
-                try {
-                    setChronicDiseasesLoading(
-                        true
-                    );
+        let active = true;
 
-                    const data =
-                        await getChronicDiseases();
+        const loadDiseases = async () => {
+            setChronicDiseasesLoading(true);
 
-                    const items =
-                        Array.isArray(data)
-                            ? data
-                            : data?.results || [];
+            try {
+                const response = await getChronicDiseases();
 
-                    setChronicDiseases(
-                        items
-                    );
-                } catch (error) {
-                    console.error(
-                        "CHRONIC DISEASES ERROR:",
-                        error
-                    );
+                const items = Array.isArray(response)
+                    ? response
+                    : response?.results ||
+                    response?.data ||
+                    [];
 
-                    toast.error(
-                        "تعذر تحميل قائمة الأمراض المزمنة."
-                    );
-                } finally {
-                    setChronicDiseasesLoading(
-                        false
-                    );
+                if (active) {
+                    setChronicDiseases(items);
                 }
-            };
+            } catch (error) {
+                console.error("CHRONIC DISEASES ERROR:", error);
 
-        loadChronicDiseases();
+                if (active) {
+                    toast.error("تعذر تحميل قائمة الأمراض المزمنة.");
+                }
+            } finally {
+                if (active) {
+                    setChronicDiseasesLoading(false);
+                }
+            }
+        };
+
+        loadDiseases();
+
+        return () => {
+            active = false;
+        };
     }, [form.patient_type]);
 
-    const updateProfileAfterCreation = async (
-        patient
-    ) => {
-        const profile =
-            await getPatientDetails(
-                patient.id
-            );
+    const updateProfileAfterCreation = async (patient) => {
+        const profile = await getPatientDetails(patient.id);
 
-        if (
-            patient.patient_type ===
-            "FITNESS" &&
-            profile?.fitness
-        ) {
+        if (patient.patient_type === "FITNESS" && profile?.fitness) {
             const data = {};
+            const fitnessFields = [
+                "height_cm",
+                "weight_kg",
+                "fitness_goal",
+                "activity_level",
+                "dietary_preferences",
+                "exercise_routine",
+                "food_allergies",
+                "goal",
+                "meals_per_day",
+                "nutrition_notes",
+                "target_weight_kg",
+                "water_intake_liters",
+            ];
 
-            if (
-                form.height_cm !== ""
-            ) {
-                data.height_cm =
-                    form.height_cm;
+            fitnessFields.forEach((field) => {
+                const value = form[field];
+
+                if (value !== "" && value !== null && value !== undefined) {
+                    data[field] =
+                        typeof value === "string" ? value.trim() : value;
+                }
+            });
+
+            if (form.notes.trim()) {
+                data.notes = form.notes.trim();
             }
 
-            if (
-                form.weight_kg !== ""
-            ) {
-                data.weight_kg =
-                    form.weight_kg;
-            }
-
-            if (
-                form.fitness_goal.trim()
-            ) {
-                data.fitness_goal =
-                    form.fitness_goal.trim();
-            }
-
-            if (
-                form.activity_level.trim()
-            ) {
-                data.activity_level =
-                    form.activity_level.trim();
-            }
-
-            if (
-                form.fitness_notes.trim()
-            ) {
-                data.notes =
-                    form.fitness_notes.trim();
-            }
-
-            if (
-                Object.keys(data).length >
-                0
-            ) {
-                await updateFitnessProfile(
-                    profile.fitness.id,
-                    data
-                );
+            if (Object.keys(data).length > 0) {
+                await updateFitnessProfile(profile.fitness.id, data);
             }
         }
 
-        if (
-            patient.patient_type ===
-            "NUTRITION" &&
-            profile?.nutrition
-        ) {
+        if (patient.patient_type === "PREGNANCY" && profile?.pregnancy) {
             const data = {};
 
-            if (
-                form.nutrition_height_cm !==
-                ""
-            ) {
-                data.height_cm =
-                    form.nutrition_height_cm;
+            if (form.last_menstrual_period) {
+                data.last_menstrual_period = form.last_menstrual_period;
             }
 
-            if (
-                form.nutrition_weight_kg !==
-                ""
-            ) {
-                data.weight_kg =
-                    form.nutrition_weight_kg;
+            if (form.expected_due_date) {
+                data.expected_due_date = form.expected_due_date;
             }
 
-            if (
-                form.target_weight_kg !== ""
-            ) {
-                data.target_weight_kg =
-                    form.target_weight_kg;
+            if (form.pregnancy_week !== "") {
+                data.pregnancy_week = form.pregnancy_week;
             }
 
-            if (
-                form.nutrition_goal.trim()
-            ) {
-                data.goal =
-                    form.nutrition_goal.trim();
+            if (form.pregnancy_notes.trim()) {
+                data.notes = form.pregnancy_notes.trim();
             }
 
-            if (
-                form.dietary_preferences.trim()
-            ) {
-                data.dietary_preferences =
-                    form.dietary_preferences.trim();
+            if (form.risk_notes.trim()) {
+                data.risk_notes = form.risk_notes.trim();
             }
 
-            if (
-                form.food_allergies.trim()
-            ) {
-                data.food_allergies =
-                    form.food_allergies.trim();
-            }
-
-            if (
-                form.nutrition_notes.trim()
-            ) {
-                data.notes =
-                    form.nutrition_notes.trim();
-            }
-
-            if (
-                Object.keys(data).length >
-                0
-            ) {
-                await updateNutritionProfile(
-                    profile.nutrition.id,
-                    data
-                );
+            if (Object.keys(data).length > 0) {
+                await updatePregnancyProfile(profile.pregnancy.id, data);
             }
         }
 
-        if (
-            patient.patient_type ===
-            "PREGNANCY" &&
-            profile?.pregnancy
-        ) {
+        if (patient.patient_type === "CHILD" && profile?.child) {
             const data = {};
 
-            if (
-                form.last_menstrual_period
-            ) {
-                data.last_menstrual_period =
-                    form.last_menstrual_period;
+            if (form.child_height_cm !== "") {
+                data.height_cm = form.child_height_cm;
             }
 
-            if (
-                form.expected_due_date
-            ) {
-                data.expected_due_date =
-                    form.expected_due_date;
+            if (form.child_weight_kg !== "") {
+                data.weight_kg = form.child_weight_kg;
             }
 
-            if (
-                form.pregnancy_week !== ""
-            ) {
-                data.pregnancy_week =
-                    form.pregnancy_week;
+            if (form.child_notes.trim()) {
+                data.notes = form.child_notes.trim();
             }
 
-            if (
-                form.pregnancy_notes.trim()
-            ) {
-                data.notes =
-                    form.pregnancy_notes.trim();
-            }
-
-            if (
-                form.risk_notes.trim()
-            ) {
-                data.risk_notes =
-                    form.risk_notes.trim();
-            }
-
-            if (
-                Object.keys(data).length >
-                0
-            ) {
-                await updatePregnancyProfile(
-                    profile.pregnancy.id,
-                    data
-                );
+            if (Object.keys(data).length > 0) {
+                await updateChildProfile(profile.child.id, data);
             }
         }
 
-        if (
-            patient.patient_type ===
-            "CHILD" &&
-            profile?.child
-        ) {
-            const data = {};
+        if (patient.patient_type === "CHRONIC") {
+            const hasDisease = Boolean(form.chronic_disease);
+            const customDisease = form.custom_disease_name.trim();
 
-            if (
-                form.guardian_name.trim()
-            ) {
-                data.guardian_name =
-                    form.guardian_name.trim();
-            }
-
-            if (
-                form.guardian_phone.trim()
-            ) {
-                data.guardian_phone =
-                    form.guardian_phone.trim();
-            }
-
-            if (
-                form.child_height_cm !== ""
-            ) {
-                data.height_cm =
-                    form.child_height_cm;
-            }
-
-            if (
-                form.child_weight_kg !== ""
-            ) {
-                data.weight_kg =
-                    form.child_weight_kg;
-            }
-
-            if (
-                form.allergies.trim()
-            ) {
-                data.allergies =
-                    form.allergies.trim();
-            }
-
-            if (
-                form.child_notes.trim()
-            ) {
-                data.notes =
-                    form.child_notes.trim();
-            }
-
-            if (
-                Object.keys(data).length >
-                0
-            ) {
-                await updateChildProfile(
-                    profile.child.id,
-                    data
-                );
-            }
-        }
-
-        if (
-            patient.patient_type ===
-            "CHRONIC"
-        ) {
-            const hasDisease =
-                form.chronic_disease !== "";
-
-            const hasCustomDisease =
-                form.custom_disease_name.trim();
-
-            if (
-                hasDisease ||
-                hasCustomDisease
-            ) {
-                const diseaseData = {
+            if (hasDisease || customDisease) {
+                await createPatientDisease({
                     patient: patient.id,
-                    disease:
-                        form.chronic_disease ||
-                        null,
-                    custom_disease_name:
-                        hasCustomDisease ||
-                        null,
-                    notes:
-                        form.chronic_notes.trim() ||
-                        null,
-                    diagnosed_at:
-                        form.diagnosed_at ||
-                        null,
-                };
-
-                await createPatientDisease(
-                    diseaseData
-                );
+                    disease: form.chronic_disease || null,
+                    custom_disease_name: customDisease || null,
+                    notes: form.chronic_notes.trim() || null,
+                    diagnosed_at: form.diagnosed_at || null,
+                });
             }
         }
 
@@ -460,91 +304,67 @@ export default function CreatePatient() {
 
     const validateForm = () => {
         if (!form.name.trim()) {
-            toast.error(
-                "اكتب اسم صاحب الملف الصحي."
-            );
-
+            toast.error("اكتب اسم صاحب الملف الصحي.");
             return false;
         }
 
         if (!form.patient_type) {
-            toast.error(
-                "اختر نوع الملف الصحي."
-            );
+            toast.error("اختر نوع الملف الصحي.");
+            return false;
+        }
 
+        if (form.phone.trim() && !/^\d{11}$/.test(form.phone.trim())) {
+            toast.error("رقم الهاتف يجب أن يتكون من 11 رقمًا.");
             return false;
         }
 
         if (
-            form.phone &&
-            !/^\d{11}$/.test(
-                form.phone.trim()
-            )
+            form.patient_type === "CHRONIC" &&
+            !form.chronic_disease &&
+            !form.custom_disease_name.trim()
         ) {
-            toast.error(
-                "رقم الهاتف يجب أن يكون 11 رقم."
-            );
-
+            toast.error("اختر مرضًا مزمنًا أو اكتب اسم المرض.");
             return false;
         }
 
         if (
-            form.patient_type ===
-            "CHILD" &&
-            !form.is_for_child
+            form.patient_type === "CHRONIC" &&
+            form.chronic_disease &&
+            form.custom_disease_name.trim()
         ) {
-            toast.error(
-                "يجب تأكيد أن الملف خاص بطفل."
-            );
-
+            toast.error("اختر مرضًا من القائمة أو اكتب اسمًا مخصصًا، وليس الاثنين.");
             return false;
         }
 
         if (
-            form.patient_type !==
-            "CHILD" &&
-            form.is_for_child
+            form.pregnancy_week !== "" &&
+            (Number(form.pregnancy_week) < 1 ||
+                Number(form.pregnancy_week) > 45)
         ) {
-            toast.error(
-                "خيار ملف الطفل متاح فقط لنوع الملف طفل."
-            );
-
+            toast.error("أسبوع الحمل يجب أن يكون بين 1 و45.");
             return false;
         }
 
         if (
-            form.patient_type ===
-            "CHRONIC"
+            form.meals_per_day !== "" &&
+            Number(form.meals_per_day) < 1
         ) {
-            if (
-                !form.chronic_disease &&
-                !form.custom_disease_name.trim()
-            ) {
-                toast.error(
-                    "اختر مرضًا مزمنًا أو اكتب اسم المرض يدويًا."
-                );
+            toast.error("عدد الوجبات يجب أن يكون رقمًا صحيحًا موجبًا.");
+            return false;
+        }
 
-                return false;
-            }
-
-            if (
-                form.chronic_disease &&
-                form.custom_disease_name.trim()
-            ) {
-                toast.error(
-                    "اختر مرضًا من القائمة أو اكتب اسم مرض مخصص، وليس الاثنين معًا."
-                );
-
-                return false;
-            }
+        if (
+            form.water_intake_liters !== "" &&
+            Number(form.water_intake_liters) < 0
+        ) {
+            toast.error("كمية المياه لا يمكن أن تكون سالبة.");
+            return false;
         }
 
         return true;
     };
 
-    const handleSubmit = async (
-        event
-    ) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         if (!validateForm()) {
@@ -556,358 +376,324 @@ export default function CreatePatient() {
         try {
             const patientData = {
                 name: form.name.trim(),
-                phone:
-                    form.phone.trim() ||
-                    null,
-                date_of_birth:
-                    form.date_of_birth ||
-                    null,
-                gender:
-                    form.gender || null,
-                patient_type:
-                    form.patient_type,
-                is_for_child:
-                    form.patient_type ===
-                    "CHILD",
-                address:
-                    form.address.trim() ||
-                    null,
+                phone: form.phone.trim() || null,
+                date_of_birth: form.date_of_birth || null,
+                gender: form.gender || null,
+                patient_type: form.patient_type,
+                is_for_child: form.patient_type === "CHILD",
+                address: form.address.trim() || null,
+                allergies: form.allergies.trim(),
+                medical_notes: form.medical_notes.trim(),
             };
 
-            const patient =
-                await createPatient(
-                    patientData
-                );
+            const patient = await createPatient(patientData);
 
-            await updateProfileAfterCreation(
-                patient
-            );
+            await updateProfileAfterCreation(patient);
 
-            toast.success(
-                "تم إنشاء الملف الصحي بنجاح."
-            );
+            toast.success("تم إنشاء الملف الصحي بنجاح.");
 
-            navigate(
-                `/patients/${patient.id}/profile`
-            );
+            navigate(`/patients/${patient.id}/profile`);
         } catch (error) {
-            console.error(
-                "CREATE PATIENT ERROR:",
-                error
-            );
-
-            toast.error(
-                getErrorMessage(error)
-            );
+            console.error("CREATE PATIENT ERROR:", error);
+            toast.error(getErrorMessage(error));
         } finally {
             setLoading(false);
         }
     };
 
+    const selectedType = PATIENT_TYPES.find(
+        (item) => item.value === form.patient_type
+    );
+
     return (
-        <div
-            className="min-h-screen bg-slate-50 px-4 py-10"
-            dir="rtl"
-        >
+        <div dir="rtl" className="min-h-screen bg-slate-50/80 px-4 py-8 sm:px-6 lg:px-8">
             <div className="mx-auto max-w-5xl">
+                <button
+                    type="button"
+                    onClick={() => navigate(-1)}
+                    className="mb-5 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-fuchsia-900"
+                >
+                    <ArrowRight size={18} />
+                    العودة
+                </button>
+
                 <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-                    <div className="bg-gradient-to-l from-fuchsia-950 via-purple-900 to-slate-900 px-8 py-10 text-white">
-                        <div className="flex items-center gap-4">
-                            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10">
-                                <HeartPulse
-                                    size={30}
-                                />
+                    <header className="relative overflow-hidden bg-gradient-to-l from-fuchsia-950 via-purple-900 to-slate-900 px-6 py-8 text-white sm:px-9 sm:py-10">
+                        <div className="absolute -left-12 -top-16 h-48 w-48 rounded-full bg-white/5" />
+                        <div className="absolute -bottom-20 right-1/3 h-48 w-48 rounded-full bg-fuchsia-400/10" />
+
+                        <div className="relative flex items-center gap-4">
+                            <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-white/15 bg-white/10">
+                                <HeartPulse size={30} />
                             </div>
 
                             <div>
-                                <h1 className="text-3xl font-bold">
-                                    إنشاء ملف صحي
+                                <p className="mb-1 text-sm font-medium text-purple-200">
+                                    إدارة الملفات الصحية
+                                </p>
+
+                                <h1 className="text-2xl font-bold sm:text-3xl">
+                                    إنشاء ملف صحي جديد
                                 </h1>
 
-                                <p className="mt-2 text-white/70">
-                                    أنشئ ملفًا صحيًا جديدًا وأضف بياناته الأساسية.
+                                <p className="mt-2 max-w-xl text-sm leading-6 text-white/70">
+                                    أدخل البيانات الأساسية، ثم اختر نوع الملف
+                                    وأضف التفاصيل الصحية المناسبة.
                                 </p>
                             </div>
                         </div>
-                    </div>
+                    </header>
 
-                    <form
-                        onSubmit={
-                            handleSubmit
-                        }
-                        className="space-y-10 p-8"
-                    >
+                    <form onSubmit={handleSubmit} className="space-y-9 p-5 sm:p-8">
                         <section>
-                            <div className="mb-6 flex items-center gap-3">
-                                <User className="text-fuchsia-900" />
+                            <SectionTitle
+                                icon={<User size={21} />}
+                                title="البيانات الأساسية"
+                                subtitle="بيانات صاحب الملف ومعلومات التواصل"
+                            />
 
-                                <h2 className="text-xl font-bold text-slate-800">
-                                    البيانات الأساسية
-                                </h2>
-                            </div>
-
-                            <div className="grid gap-5 md:grid-cols-2">
+                            <div className="grid gap-5 sm:grid-cols-2">
                                 <Input
-                                    label="الاسم"
+                                    label="الاسم بالكامل"
                                     name="name"
-                                    value={
-                                        form.name
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    icon={
-                                        <User
-                                            size={
-                                                18
-                                            }
-                                        />
-                                    }
+                                    value={form.name}
+                                    onChange={handleChange}
+                                    icon={<User size={18} />}
                                     required
+                                    placeholder="اكتب الاسم بالكامل"
                                 />
 
                                 <Input
                                     label="رقم الهاتف"
                                     name="phone"
-                                    value={
-                                        form.phone
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
                                     type="tel"
-                                    icon={
-                                        <Phone
-                                            size={
-                                                18
-                                            }
-                                        />
-                                    }
+                                    value={form.phone}
+                                    onChange={handleChange}
+                                    icon={<Phone size={18} />}
+                                    placeholder="01XXXXXXXXX"
                                 />
 
                                 <Input
                                     label="تاريخ الميلاد"
                                     name="date_of_birth"
                                     type="date"
-                                    value={
-                                        form.date_of_birth
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    icon={
-                                        <Calendar
-                                            size={
-                                                18
-                                            }
-                                        />
-                                    }
+                                    value={form.date_of_birth}
+                                    onChange={handleChange}
+                                    icon={<Calendar size={18} />}
                                 />
 
                                 <Select
                                     label="النوع"
                                     name="gender"
-                                    value={
-                                        form.gender
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
+                                    value={form.gender}
+                                    onChange={handleChange}
                                     options={[
-                                        {
-                                            value: "MALE",
-                                            label: "ذكر",
-                                        },
-                                        {
-                                            value: "FEMALE",
-                                            label: "أنثى",
-                                        },
+                                        { value: "MALE", label: "ذكر" },
+                                        { value: "FEMALE", label: "أنثى" },
                                     ]}
                                 />
 
-                                <Select
-                                    label="نوع الملف الصحي"
-                                    name="patient_type"
-                                    value={
-                                        form.patient_type
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    options={[
-                                        {
-                                            value: "FITNESS",
-                                            label: "لياقة بدنية",
-                                        },
-                                        {
-                                            value: "NUTRITION",
-                                            label: "تغذية",
-                                        },
-                                        {
-                                            value: "CHRONIC",
-                                            label: "أمراض مزمنة",
-                                        },
-                                        {
-                                            value: "PREGNANCY",
-                                            label: "حمل",
-                                        },
-                                        {
-                                            value: "CHILD",
-                                            label: "طفل",
-                                        },
-                                    ]}
-                                    required
-                                />
-
-                                <Input
-                                    label="العنوان"
-                                    name="address"
-                                    value={
-                                        form.address
-                                    }
-                                    onChange={
-                                        handleChange
-                                    }
-                                    icon={
-                                        <MapPin
-                                            size={
-                                                18
-                                            }
-                                        />
-                                    }
-                                />
+                                <div className="sm:col-span-2">
+                                    <Input
+                                        label="العنوان"
+                                        name="address"
+                                        value={form.address}
+                                        onChange={handleChange}
+                                        icon={<MapPin size={18} />}
+                                        placeholder="المنطقة والعنوان بالتفصيل"
+                                    />
+                                </div>
                             </div>
-
-                            {form.patient_type ===
-                                "CHILD" && (
-                                    <label className="mt-5 flex cursor-pointer items-center gap-3 rounded-2xl border border-fuchsia-200 bg-fuchsia-50 p-4">
-                                        <input
-                                            type="checkbox"
-                                            name="is_for_child"
-                                            checked={
-                                                form.is_for_child
-                                            }
-                                            onChange={
-                                                handleChange
-                                            }
-                                            className="h-5 w-5 accent-fuchsia-900"
-                                        />
-
-                                        <span className="font-medium text-slate-700">
-                                            هذا الملف الصحي خاص بطفل
-                                        </span>
-                                    </label>
-                                )}
                         </section>
 
-                        {form.patient_type ===
-                            "FITNESS" && (
-                                <FitnessFields
-                                    form={form}
-                                    onChange={
-                                        handleChange
-                                    }
-                                />
-                            )}
+                        <Divider />
 
-                        {form.patient_type ===
-                            "NUTRITION" && (
-                                <NutritionFields
-                                    form={form}
-                                    onChange={
-                                        handleChange
-                                    }
-                                />
-                            )}
+                        <section>
+                            <SectionTitle
+                                icon={<ShieldCheck size={21} />}
+                                title="نوع الملف الصحي"
+                                subtitle="اختر النوع المناسب لعرض الحقول الخاصة به"
+                            />
 
-                        {form.patient_type ===
-                            "CHRONIC" && (
-                                <ChronicFields
-                                    form={form}
-                                    onChange={
-                                        handleChange
-                                    }
-                                    diseases={
-                                        chronicDiseases
-                                    }
-                                    loading={
-                                        chronicDiseasesLoading
-                                    }
-                                />
-                            )}
+                            <div className="grid gap-4 sm:grid-cols-2">
+                                {PATIENT_TYPES.map((type) => {
+                                    const Icon = type.icon;
+                                    const isSelected =
+                                        form.patient_type === type.value;
 
-                        {form.patient_type ===
-                            "PREGNANCY" && (
-                                <PregnancyFields
-                                    form={form}
-                                    onChange={
-                                        handleChange
-                                    }
-                                />
-                            )}
+                                    return (
+                                        <button
+                                            key={type.value}
+                                            type="button"
+                                            onClick={() =>
+                                                setForm((previous) => ({
+                                                    ...previous,
+                                                    patient_type: type.value,
+                                                }))
+                                            }
+                                            className={`flex min-h-28 items-start gap-4 rounded-2xl border p-4 text-right transition ${isSelected
+                                                ? "border-fuchsia-800 bg-fuchsia-50 ring-2 ring-fuchsia-100"
+                                                : "border-slate-200 bg-white hover:border-purple-300 hover:bg-slate-50"
+                                                }`}
+                                        >
+                                            <span
+                                                className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${isSelected
+                                                    ? "bg-fuchsia-900 text-white"
+                                                    : "bg-slate-100 text-slate-600"
+                                                    }`}
+                                            >
+                                                <Icon size={22} />
+                                            </span>
 
-                        {form.patient_type ===
-                            "CHILD" && (
-                                <ChildFields
-                                    form={form}
-                                    onChange={
-                                        handleChange
-                                    }
-                                />
-                            )}
+                                            <span className="flex-1">
+                                                <span className="block font-bold text-slate-800">
+                                                    {type.label}
+                                                </span>
 
-                        <div className="flex justify-end gap-4 border-t border-slate-200 pt-6">
+                                                <span className="mt-1 block text-sm leading-6 text-slate-500">
+                                                    {type.description}
+                                                </span>
+                                            </span>
+
+                                            <span
+                                                className={`mt-1 h-4 w-4 shrink-0 rounded-full border-2 ${isSelected
+                                                    ? "border-fuchsia-900 bg-fuchsia-900 ring-2 ring-fuchsia-200"
+                                                    : "border-slate-300"
+                                                    }`}
+                                            />
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </section>
+
+                        {selectedType && (
+                            <>
+                                <Divider />
+
+                                {form.patient_type === "FITNESS" && (
+                                    <FitnessFields
+                                        form={form}
+                                        onChange={handleChange}
+                                    />
+                                )}
+
+                                {form.patient_type === "CHRONIC" && (
+                                    <ChronicFields
+                                        form={form}
+                                        onChange={handleChange}
+                                        diseases={chronicDiseases}
+                                        loading={chronicDiseasesLoading}
+                                    />
+                                )}
+
+                                {form.patient_type === "PREGNANCY" && (
+                                    <PregnancyFields
+                                        form={form}
+                                        onChange={handleChange}
+                                    />
+                                )}
+
+                                {form.patient_type === "CHILD" && (
+                                    <ChildFields
+                                        form={form}
+                                        onChange={handleChange}
+                                    />
+                                )}
+                            </>
+                        )}
+
+                        <Divider />
+
+                        <section>
+                            <SectionTitle
+                                icon={<FileText size={21} />}
+                                title="معلومات صحية إضافية"
+                                subtitle="يمكن ترك هذه الحقول فارغة وإكمالها لاحقًا"
+                            />
+
+                            <div className="grid gap-5 sm:grid-cols-2">
+                                <TextArea
+                                    label="الحساسية"
+                                    name="allergies"
+                                    value={form.allergies}
+                                    onChange={handleChange}
+                                    placeholder="الأدوية أو الأطعمة التي تسبب الحساسية..."
+                                />
+
+                                <TextArea
+                                    label="ملاحظات طبية"
+                                    name="medical_notes"
+                                    value={form.medical_notes}
+                                    onChange={handleChange}
+                                    placeholder="أي معلومات طبية إضافية مهمة..."
+                                />
+                            </div>
+                        </section>
+
+                        <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-6 sm:flex-row sm:justify-between">
                             <button
                                 type="button"
-                                onClick={() =>
-                                    navigate(
-                                        -1
-                                    )
-                                }
-                                disabled={
-                                    loading
-                                }
-                                className="rounded-xl border border-slate-300 px-7 py-3 text-slate-700 transition hover:bg-slate-100 disabled:opacity-60"
+                                onClick={() => navigate(-1)}
+                                disabled={loading}
+                                className="rounded-xl border border-slate-300 px-6 py-3 font-semibold text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
                             >
                                 إلغاء
                             </button>
 
                             <button
                                 type="submit"
-                                disabled={
-                                    loading
-                                }
-                                className="flex items-center gap-2 rounded-xl bg-fuchsia-950 px-8 py-3 font-bold text-white transition hover:bg-fuchsia-900 disabled:opacity-60"
+                                disabled={loading || !form.patient_type}
+                                className="inline-flex items-center justify-center gap-2 rounded-xl bg-fuchsia-950 px-7 py-3 font-bold text-white shadow-sm transition hover:bg-fuchsia-900 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                                 {loading ? (
                                     <>
                                         <Loader2
-                                            size={
-                                                20
-                                            }
+                                            size={19}
                                             className="animate-spin"
                                         />
-
-                                        جاري الحفظ...
+                                        جاري حفظ الملف...
                                     </>
                                 ) : (
                                     <>
-                                        إنشاء الملف
-
-                                        <ArrowRight
-                                            size={
-                                                20
-                                            }
-                                        />
+                                        حفظ الملف الصحي
+                                        <ArrowRight size={19} />
                                     </>
                                 )}
                             </button>
                         </div>
                     </form>
                 </div>
+
+                <p className="mt-4 text-center text-xs leading-6 text-slate-400">
+                    تأكد من صحة البيانات المدخلة قبل حفظ الملف الصحي.
+                </p>
             </div>
         </div>
     );
+}
+
+function SectionTitle({ icon, title, subtitle }) {
+    return (
+        <div className="mb-6 flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-50 text-fuchsia-900">
+                {icon}
+            </div>
+
+            <div>
+                <h2 className="font-bold text-slate-800">{title}</h2>
+                {subtitle && (
+                    <p className="mt-1 text-sm leading-6 text-slate-500">
+                        {subtitle}
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+}
+
+function Divider() {
+    return <div className="h-px bg-slate-100" />;
 }
 
 function Input({
@@ -918,35 +704,40 @@ function Input({
     type = "text",
     icon,
     required = false,
+    placeholder = "",
+    min,
+    max,
+    step,
 }) {
     return (
         <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+            <label
+                htmlFor={name}
+                className="mb-2 block text-sm font-semibold text-slate-700"
+            >
                 {label}
-
-                {required && (
-                    <span className="mr-1 text-red-500">
-                        *
-                    </span>
-                )}
+                {required && <span className="mr-1 text-red-500">*</span>}
             </label>
 
             <div className="relative">
                 {icon && (
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
+                    <span className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400">
                         {icon}
-                    </div>
+                    </span>
                 )}
 
                 <input
-                    type={type}
+                    id={name}
                     name={name}
+                    type={type}
                     value={value}
                     onChange={onChange}
                     required={required}
-                    className={`w-full rounded-xl border border-slate-300 bg-white py-3 outline-none transition focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100 ${icon
-                            ? "pl-4 pr-11"
-                            : "px-4"
+                    placeholder={placeholder}
+                    min={min}
+                    max={max}
+                    step={step}
+                    className={`w-full rounded-xl border border-slate-200 bg-white py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-fuchsia-800 focus:ring-4 focus:ring-fuchsia-50 ${icon ? "pl-4 pr-10" : "px-4"
                         }`}
                 />
             </div>
@@ -954,557 +745,431 @@ function Input({
     );
 }
 
-function Select({
-    label,
-    name,
-    value,
-    onChange,
-    options,
-    required = false,
-}) {
+function Select({ label, name, value, onChange, options }) {
     return (
         <div>
-            <label className="mb-2 block text-sm font-semibold text-slate-700">
+            <label
+                htmlFor={name}
+                className="mb-2 block text-sm font-semibold text-slate-700"
+            >
                 {label}
-
-                {required && (
-                    <span className="mr-1 text-red-500">
-                        *
-                    </span>
-                )}
             </label>
 
             <select
+                id={name}
                 name={name}
                 value={value}
                 onChange={onChange}
-                required={required}
-                className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-fuchsia-800 focus:ring-4 focus:ring-fuchsia-50"
             >
-                <option value="">
-                    اختر
-                </option>
+                <option value="">اختر</option>
 
-                {options.map(
-                    (option) => (
-                        <option
-                            key={
-                                option.value
-                            }
-                            value={
-                                option.value
-                            }
-                        >
-                            {
-                                option.label
-                            }
-                        </option>
-                    )
-                )}
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
             </select>
         </div>
     );
 }
 
-function SectionTitle({
-    icon,
-    title,
-}) {
+function TextArea({ label, name, value, onChange, placeholder }) {
     return (
-        <div className="mb-6 flex items-center gap-3">
-            <div className="text-fuchsia-900">
-                {icon}
-            </div>
+        <div>
+            <label
+                htmlFor={name}
+                className="mb-2 block text-sm font-semibold text-slate-700"
+            >
+                {label}
+            </label>
 
-            <h2 className="text-xl font-bold text-slate-800">
-                {title}
-            </h2>
+            <textarea
+                id={name}
+                name={name}
+                value={value}
+                onChange={onChange}
+                placeholder={placeholder}
+                rows={4}
+                className="w-full resize-y rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-fuchsia-800 focus:ring-4 focus:ring-fuchsia-50"
+            />
         </div>
     );
 }
 
-function FitnessFields({
-    form,
-    onChange,
-}) {
+function FitnessFields({ form, onChange }) {
     return (
         <section>
             <SectionTitle
-                icon={
-                    <Activity
-                        size={24}
-                    />
-                }
-                title="بيانات اللياقة البدنية"
+                icon={<Activity size={21} />}
+                title="بيانات اللياقة والتغذية"
+                subtitle="بيانات الجسم والأهداف والعادات الغذائية"
             />
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2">
                 <Input
                     label="الطول بالسنتيمتر"
                     name="height_cm"
                     type="number"
-                    value={
-                        form.height_cm
-                    }
+                    min="1"
+                    step="0.1"
+                    value={form.height_cm}
                     onChange={onChange}
+                    icon={<Activity size={18} />}
+                    placeholder="مثال: 175"
                 />
 
                 <Input
                     label="الوزن بالكيلوجرام"
                     name="weight_kg"
                     type="number"
-                    value={
-                        form.weight_kg
-                    }
+                    min="1"
+                    step="0.1"
+                    value={form.weight_kg}
                     onChange={onChange}
-                />
-
-                <Input
-                    label="هدف اللياقة"
-                    name="fitness_goal"
-                    value={
-                        form.fitness_goal
-                    }
-                    onChange={onChange}
-                />
-
-                <Input
-                    label="مستوى النشاط"
-                    name="activity_level"
-                    value={
-                        form.activity_level
-                    }
-                    onChange={onChange}
-                />
-            </div>
-
-            <textarea
-                name="fitness_notes"
-                value={
-                    form.fitness_notes
-                }
-                onChange={onChange}
-                placeholder="ملاحظات"
-                rows="4"
-                className="mt-5 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-            />
-        </section>
-    );
-}
-
-function NutritionFields({
-    form,
-    onChange,
-}) {
-    return (
-        <section>
-            <SectionTitle
-                icon={
-                    <Apple
-                        size={24}
-                    />
-                }
-                title="بيانات التغذية"
-            />
-
-            <div className="grid gap-5 md:grid-cols-2">
-                <Input
-                    label="الطول"
-                    name="nutrition_height_cm"
-                    type="number"
-                    value={
-                        form.nutrition_height_cm
-                    }
-                    onChange={onChange}
-                />
-
-                <Input
-                    label="الوزن"
-                    name="nutrition_weight_kg"
-                    type="number"
-                    value={
-                        form.nutrition_weight_kg
-                    }
-                    onChange={onChange}
+                    icon={<Weight size={18} />}
+                    placeholder="مثال: 80"
                 />
 
                 <Input
                     label="الوزن المستهدف"
                     name="target_weight_kg"
                     type="number"
-                    value={
-                        form.target_weight_kg
-                    }
+                    min="1"
+                    step="0.1"
+                    value={form.target_weight_kg}
                     onChange={onChange}
+                    placeholder="الوزن المطلوب الوصول إليه"
                 />
 
                 <Input
-                    label="الهدف"
-                    name="nutrition_goal"
-                    value={
-                        form.nutrition_goal
-                    }
+                    label="مستوى النشاط"
+                    name="activity_level"
+                    value={form.activity_level}
                     onChange={onChange}
+                    placeholder="مثال: منخفض، متوسط، مرتفع"
+                />
+
+                <Input
+                    label="هدف اللياقة"
+                    name="fitness_goal"
+                    value={form.fitness_goal}
+                    onChange={onChange}
+                    placeholder="مثال: زيادة الكتلة العضلية"
+                />
+
+                <Input
+                    label="الهدف الغذائي"
+                    name="goal"
+                    value={form.goal}
+                    onChange={onChange}
+                    placeholder="مثال: خسارة الوزن"
+                />
+
+                <Input
+                    label="عدد الوجبات يوميًا"
+                    name="meals_per_day"
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={form.meals_per_day}
+                    onChange={onChange}
+                    icon={<Utensils size={18} />}
+                    placeholder="مثال: 3"
+                />
+
+                <Input
+                    label="كمية المياه يوميًا باللتر"
+                    name="water_intake_liters"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={form.water_intake_liters}
+                    onChange={onChange}
+                    icon={<Droplets size={18} />}
+                    placeholder="مثال: 2.5"
                 />
             </div>
 
-            <textarea
-                name="dietary_preferences"
-                value={
-                    form.dietary_preferences
-                }
-                onChange={onChange}
-                placeholder="التفضيلات الغذائية"
-                rows="3"
-                className="mt-5 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-            />
+            <div className="mt-5 grid gap-5">
+                <TextArea
+                    label="التفضيلات الغذائية"
+                    name="dietary_preferences"
+                    value={form.dietary_preferences}
+                    onChange={onChange}
+                    placeholder="الأطعمة المفضلة أو النظام الغذائي المتبع..."
+                />
 
-            <textarea
-                name="food_allergies"
-                value={
-                    form.food_allergies
-                }
-                onChange={onChange}
-                placeholder="الحساسيات الغذائية"
-                rows="3"
-                className="mt-5 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-            />
+                <TextArea
+                    label="الحساسية الغذائية"
+                    name="food_allergies"
+                    value={form.food_allergies}
+                    onChange={onChange}
+                    placeholder="أي أطعمة تسبب الحساسية..."
+                />
 
-            <textarea
-                name="nutrition_notes"
-                value={
-                    form.nutrition_notes
-                }
-                onChange={onChange}
-                placeholder="ملاحظات"
-                rows="3"
-                className="mt-5 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-            />
+                <TextArea
+                    label="التمارين الرياضية"
+                    name="exercise_routine"
+                    value={form.exercise_routine}
+                    onChange={onChange}
+                    placeholder="نوع التمارين وعدد مرات ممارستها..."
+                />
+
+                <TextArea
+                    label="ملاحظات اللياقة والتغذية"
+                    name="nutrition_notes"
+                    value={form.nutrition_notes}
+                    onChange={onChange}
+                    placeholder="ملاحظات إضافية..."
+                />
+
+                <TextArea
+                    label="ملاحظات عامة"
+                    name="notes"
+                    value={form.notes}
+                    onChange={onChange}
+                    placeholder="أي تفاصيل إضافية عن الحالة..."
+                />
+            </div>
         </section>
     );
 }
 
-function ChronicFields({
-    form,
-    onChange,
-    diseases,
-    loading,
-}) {
+function ChronicFields({ form, onChange, diseases, loading }) {
+    const handleDiseaseChange = (event) => {
+        const { value } = event.target;
+
+        onChange(event);
+
+        if (value) {
+            onChange({
+                target: {
+                    name: "custom_disease_name",
+                    value: "",
+                    type: "text",
+                },
+            });
+        }
+    };
+
+    const handleCustomDiseaseChange = (event) => {
+        const { value } = event.target;
+
+        onChange(event);
+
+        if (value.trim()) {
+            onChange({
+                target: {
+                    name: "chronic_disease",
+                    value: "",
+                    type: "text",
+                },
+            });
+        }
+    };
+
     return (
         <section>
             <SectionTitle
-                icon={
-                    <Stethoscope
-                        size={24}
-                    />
-                }
+                icon={<Stethoscope size={21} />}
                 title="بيانات الأمراض المزمنة"
+                subtitle="حدد المرض وتاريخ التشخيص وأي ملاحظات مهمة"
             />
 
-            <div className="rounded-2xl border border-purple-100 bg-purple-50/50 p-5">
-                <div className="mb-5">
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
+            <div className="space-y-5 rounded-2xl border border-slate-200 bg-slate-50/70 p-5">
+                <div>
+                    <label
+                        htmlFor="chronic_disease"
+                        className="mb-2 block text-sm font-semibold text-slate-700"
+                    >
                         المرض المزمن
                     </label>
 
                     <div className="relative">
-                        <Stethoscope
+                        <Search
                             size={18}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400"
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400"
                         />
 
                         <select
+                            id="chronic_disease"
                             name="chronic_disease"
-                            value={
-                                form.chronic_disease
-                            }
-                            onChange={(event) => {
-                                onChange(
-                                    event
-                                );
-
-                                if (
-                                    event.target
-                                        .value
-                                ) {
-                                    onChange({
-                                        target: {
-                                            name: "custom_disease_name",
-                                            value: "",
-                                            type: "text",
-                                        },
-                                    });
-                                }
-                            }}
+                            value={form.chronic_disease}
+                            onChange={handleDiseaseChange}
                             disabled={loading}
-                            className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-4 py-3 pr-11 outline-none transition focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100 disabled:bg-slate-100"
+                            className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-4 pr-10 text-sm outline-none transition focus:border-fuchsia-800 focus:ring-4 focus:ring-fuchsia-50 disabled:bg-slate-100"
                         >
-                            <option value="">
-                                اختر مرضًا من القائمة
-                            </option>
+                            <option value="">اختر مرضًا من القائمة</option>
 
-                            {diseases.map(
-                                (disease) => (
-                                    <option
-                                        key={
-                                            disease.id
-                                        }
-                                        value={
-                                            disease.id
-                                        }
-                                    >
-                                        {
-                                            disease.name
-                                        }
-                                    </option>
-                                )
-                            )}
+                            {diseases.map((disease) => (
+                                <option
+                                    key={disease.id}
+                                    value={disease.id}
+                                >
+                                    {disease.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
                     {loading && (
-                        <div className="mt-3 flex items-center gap-2 text-sm text-slate-500">
+                        <p className="mt-2 flex items-center gap-2 text-sm text-slate-500">
                             <Loader2
-                                size={16}
+                                size={15}
                                 className="animate-spin"
                             />
-
                             جاري تحميل الأمراض...
-                        </div>
+                        </p>
                     )}
 
-                    {!loading &&
-                        diseases.length ===
-                        0 && (
-                            <p className="mt-3 text-sm text-amber-600">
-                                لا توجد أمراض مضافة حاليًا في النظام.
-                            </p>
-                        )}
+                    {!loading && diseases.length === 0 && (
+                        <p className="mt-2 text-xs leading-5 text-slate-500">
+                            يمكنك كتابة اسم المرض يدويًا إذا لم يكن موجودًا بالقائمة.
+                        </p>
+                    )}
                 </div>
 
-                <div className="relative mb-5 flex items-center">
+                <div className="flex items-center gap-3">
                     <div className="h-px flex-1 bg-slate-200" />
-
-                    <span className="px-4 text-xs font-bold text-slate-400">
-                        أو
+                    <span className="text-xs font-medium text-slate-400">
+                        أو اكتب اسم المرض
                     </span>
-
                     <div className="h-px flex-1 bg-slate-200" />
                 </div>
 
                 <Input
-                    label="اسم مرض غير موجود بالقائمة"
+                    label="اسم مرض مخصص"
                     name="custom_disease_name"
-                    value={
-                        form.custom_disease_name
-                    }
-                    onChange={(event) => {
-                        onChange(event);
-
-                        if (
-                            event.target.value.trim()
-                        ) {
-                            onChange({
-                                target: {
-                                    name: "chronic_disease",
-                                    value: "",
-                                    type: "text",
-                                },
-                            });
-                        }
-                    }}
-                    icon={
-                        <Search
-                            size={18}
-                        />
-                    }
+                    value={form.custom_disease_name}
+                    onChange={handleCustomDiseaseChange}
+                    placeholder="اكتب اسم المرض"
                 />
 
-                <div className="mt-5">
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        تاريخ التشخيص
-                    </label>
+                <Input
+                    label="تاريخ التشخيص"
+                    name="diagnosed_at"
+                    type="date"
+                    value={form.diagnosed_at}
+                    onChange={onChange}
+                    icon={<Calendar size={18} />}
+                />
 
-                    <input
-                        type="date"
-                        name="diagnosed_at"
-                        value={
-                            form.diagnosed_at
-                        }
-                        onChange={onChange}
-                        className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-                    />
-                </div>
-
-                <div className="mt-5">
-                    <label className="mb-2 block text-sm font-semibold text-slate-700">
-                        ملاحظات
-                    </label>
-
-                    <textarea
-                        name="chronic_notes"
-                        value={
-                            form.chronic_notes
-                        }
-                        onChange={onChange}
-                        placeholder="اكتب أي ملاحظات مهمة عن المرض..."
-                        rows="4"
-                        className="w-full resize-none rounded-xl border border-slate-300 bg-white px-4 py-3 outline-none transition focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-                    />
-                </div>
+                <TextArea
+                    label="ملاحظات عن المرض"
+                    name="chronic_notes"
+                    value={form.chronic_notes}
+                    onChange={onChange}
+                    placeholder="الأعراض أو الملاحظات الطبية المهمة..."
+                />
             </div>
         </section>
     );
 }
 
-function PregnancyFields({
-    form,
-    onChange,
-}) {
+function PregnancyFields({ form, onChange }) {
     return (
         <section>
             <SectionTitle
-                icon={
-                    <HeartPulse
-                        size={24}
-                    />
-                }
+                icon={<HeartPulse size={21} />}
                 title="بيانات الحمل"
+                subtitle="مواعيد الحمل والأسبوع الحالي والملاحظات"
             />
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2">
                 <Input
-                    label="تاريخ آخر دورة"
+                    label="تاريخ آخر دورة شهرية"
                     name="last_menstrual_period"
                     type="date"
-                    value={
-                        form.last_menstrual_period
-                    }
+                    value={form.last_menstrual_period}
                     onChange={onChange}
+                    icon={<Calendar size={18} />}
                 />
 
                 <Input
                     label="موعد الولادة المتوقع"
                     name="expected_due_date"
                     type="date"
-                    value={
-                        form.expected_due_date
-                    }
+                    value={form.expected_due_date}
                     onChange={onChange}
+                    icon={<Calendar size={18} />}
                 />
 
                 <Input
-                    label="أسبوع الحمل"
+                    label="أسبوع الحمل الحالي"
                     name="pregnancy_week"
                     type="number"
-                    value={
-                        form.pregnancy_week
-                    }
+                    min="1"
+                    max="45"
+                    value={form.pregnancy_week}
                     onChange={onChange}
+                    placeholder="مثال: 20"
                 />
             </div>
 
-            <textarea
-                name="pregnancy_notes"
-                value={
-                    form.pregnancy_notes
-                }
-                onChange={onChange}
-                placeholder="ملاحظات الطبيب"
-                rows="4"
-                className="mt-5 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-            />
+            <div className="mt-5 grid gap-5">
+                <TextArea
+                    label="ملاحظات الحمل"
+                    name="pregnancy_notes"
+                    value={form.pregnancy_notes}
+                    onChange={onChange}
+                    placeholder="ملاحظات المتابعة..."
+                />
 
-            <textarea
-                name="risk_notes"
-                value={
-                    form.risk_notes
-                }
-                onChange={onChange}
-                placeholder="ملاحظات المخاطر"
-                rows="4"
-                className="mt-5 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-            />
+                <TextArea
+                    label="ملاحظات المخاطر"
+                    name="risk_notes"
+                    value={form.risk_notes}
+                    onChange={onChange}
+                    placeholder="أي مخاطر أو تنبيهات مسجلة..."
+                />
+            </div>
         </section>
     );
 }
 
-function ChildFields({
-    form,
-    onChange,
-}) {
+function ChildFields({ form, onChange }) {
     return (
         <section>
             <SectionTitle
-                icon={
-                    <Baby
-                        size={24}
-                    />
-                }
+                icon={<Baby size={21} />}
                 title="بيانات الطفل"
+                subtitle="الطول والوزن والمعلومات الصحية الخاصة بالطفل"
             />
 
-            <div className="grid gap-5 md:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-2">
                 <Input
-                    label="اسم ولي الأمر"
-                    name="guardian_name"
-                    value={
-                        form.guardian_name
-                    }
-                    onChange={onChange}
-                />
-
-                <Input
-                    label="هاتف ولي الأمر"
-                    name="guardian_phone"
-                    value={
-                        form.guardian_phone
-                    }
-                    onChange={onChange}
-                />
-
-                <Input
-                    label="الطول"
+                    label="طول الطفل بالسنتيمتر"
                     name="child_height_cm"
                     type="number"
-                    value={
-                        form.child_height_cm
-                    }
+                    min="1"
+                    step="0.1"
+                    value={form.child_height_cm}
                     onChange={onChange}
+                    placeholder="مثال: 110"
                 />
 
                 <Input
-                    label="الوزن"
+                    label="وزن الطفل بالكيلوجرام"
                     name="child_weight_kg"
                     type="number"
-                    value={
-                        form.child_weight_kg
-                    }
+                    min="1"
+                    step="0.1"
+                    value={form.child_weight_kg}
                     onChange={onChange}
+                    placeholder="مثال: 20"
                 />
             </div>
 
-            <textarea
-                name="allergies"
-                value={
-                    form.allergies
-                }
-                onChange={onChange}
-                placeholder="الحساسيات"
-                rows="4"
-                className="mt-5 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-            />
-
-            <textarea
-                name="child_notes"
-                value={
-                    form.child_notes
-                }
-                onChange={onChange}
-                placeholder="ملاحظات"
-                rows="4"
-                className="mt-5 w-full resize-none rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-fuchsia-900 focus:ring-2 focus:ring-fuchsia-100"
-            />
+            <div className="mt-5">
+                <TextArea
+                    label="ملاحظات الطفل"
+                    name="child_notes"
+                    value={form.child_notes}
+                    onChange={onChange}
+                    placeholder="ملاحظات النمو أو أي معلومات مهمة..."
+                />
+            </div>
         </section>
     );
 }

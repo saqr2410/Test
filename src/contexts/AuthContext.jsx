@@ -1,4 +1,5 @@
-﻿import {
+﻿
+import {
     createContext,
     useContext,
     useEffect,
@@ -6,365 +7,256 @@
 } from "react";
 
 import api from "../api/axios";
-
 import toast from "react-hot-toast";
 
 
-const AuthContext =
-    createContext(null);
+const AuthContext = createContext(null);
 
-
-/* ==========================================
-   Normalize User
-========================================== */
 
 const normalizeUser = (userData) => {
-
-    if (!userData) {
+    if (!userData || typeof userData !== "object") {
         return null;
     }
 
     return {
         ...userData,
-
-        role: String(
-            userData.role || ""
-        )
+        role: String(userData.role || "")
             .trim()
             .toUpperCase(),
     };
 };
 
 
-/* ==========================================
-   Extract API Errors
-========================================== */
+const getMessage = (value) => {
+    if (Array.isArray(value)) {
+        return value.map(getMessage).join(" ");
+    }
+
+    if (typeof value === "string") {
+        return value;
+    }
+
+    if (value && typeof value === "object") {
+        return Object.values(value)
+            .map(getMessage)
+            .filter(Boolean)
+            .join(" ");
+    }
+
+    return "";
+};
+
 
 const getApiErrors = (error) => {
+    const data = error?.response?.data;
+    const status = error?.response?.status;
 
-    const data =
-        error?.response?.data;
-
-
-    if (!data) {
-
+    if (!error?.response) {
         return {
             general:
-                "حدث خطأ في الاتصال بالخادم."
+                "تعذر الاتصال بالخادم. تأكد أن الـ Backend يعمل.",
         };
-
     }
 
+    if (status === 429) {
+        return {
+            general:
+                "محاولات كثيرة. انتظر قليلًا ثم حاول مرة أخرى.",
+        };
+    }
+
+    if (status === 403) {
+        return {
+            general:
+                getMessage(data?.detail) ||
+                "ليس لديك صلاحية لتنفيذ هذا الإجراء.",
+        };
+    }
+
+    if (status === 401) {
+        return {
+            general:
+                getMessage(data?.detail) ||
+                "اسم المستخدم أو كلمة المرور غير صحيحة.",
+        };
+    }
+
+    if (status >= 500) {
+        return {
+            general:
+                "حدث خطأ في الخادم. حاول مرة أخرى لاحقًا.",
+        };
+    }
+
+    if (!data || typeof data !== "object") {
+        return {
+            general: "حدث خطأ، حاول مرة أخرى.",
+        };
+    }
 
     const errors = {};
+    const knownFields = [
+        "username",
+        "email",
+        "phone",
+        "password",
+        "password2",
+        "confirm_password",
+        "old_password",
+        "new_password",
+        "first_name",
+        "last_name",
+        "non_field_errors",
+        "detail",
+        "message",
+    ];
 
+    knownFields.forEach((field) => {
+        if (data[field] !== undefined) {
+            const message = getMessage(data[field]);
 
-    if (data.username) {
+            if (field === "detail" || field === "message") {
+                errors.general = message;
+            } else if (field === "non_field_errors") {
+                errors.general = message;
+            } else {
+                errors[field] = message;
+            }
+        }
+    });
 
-        errors.username =
-            Array.isArray(data.username)
-                ? data.username[0]
-                : data.username;
-
-    }
-
-
-    if (data.email) {
-
-        errors.email =
-            Array.isArray(data.email)
-                ? data.email[0]
-                : data.email;
-
-    }
-
-
-    if (data.phone) {
-
-        errors.phone =
-            Array.isArray(data.phone)
-                ? data.phone[0]
-                : data.phone;
-
-    }
-
-
-    if (data.password) {
-
-        errors.password =
-            Array.isArray(data.password)
-                ? data.password[0]
-                : data.password;
-
-    }
-
-
-    if (data.password2) {
-
-        errors.password2 =
-            Array.isArray(data.password2)
-                ? data.password2[0]
-                : data.password2;
-
-    }
-
-
-    if (data.confirm_password) {
-
-        errors.confirm_password =
-            Array.isArray(
-                data.confirm_password
-            )
-                ? data.confirm_password[0]
-                : data.confirm_password;
-
-    }
-
-
-    if (data.old_password) {
-
-        errors.old_password =
-            Array.isArray(
-                data.old_password
-            )
-                ? data.old_password[0]
-                : data.old_password;
-
-    }
-
-
-    if (data.detail) {
-
+    if (Object.keys(errors).length === 0) {
         errors.general =
-            Array.isArray(data.detail)
-                ? data.detail[0]
-                : data.detail;
-
+            "تعذر تنفيذ الطلب. راجع البيانات وحاول مرة أخرى.";
     }
-
-
-    if (data.non_field_errors) {
-
-        errors.general =
-            Array.isArray(
-                data.non_field_errors
-            )
-                ? data.non_field_errors[0]
-                : data.non_field_errors;
-
-    }
-
-
-    if (
-        Object.keys(errors).length === 0
-    ) {
-
-        errors.general =
-            "حدث خطأ، حاول مرة أخرى.";
-
-    }
-
 
     return errors;
 };
 
 
-/* ==========================================
-   Auth Provider
-========================================== */
-
-export const AuthProvider = ({
-    children,
-}) => {
-
-    const [user, setUser] =
-        useState(null);
+export const AuthProvider = ({ children }) => {
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [initializing, setInitializing] = useState(true);
 
 
-    /*
-     * Loading for login/register
-     */
-    const [loading, setLoading] =
-        useState(false);
+    const saveAuthData = (access, refresh, userData) => {
+        if (!access || !refresh || !userData) {
+            throw new Error("Invalid authentication response.");
+        }
 
+        const normalizedUser = normalizeUser(userData);
 
-    /*
-     * Loading only while checking
-     * the existing access token.
-     */
-    const [initializing, setInitializing] =
-        useState(true);
+        if (!normalizedUser) {
+            throw new Error("Invalid user data.");
+        }
 
+        localStorage.setItem("access_token", access);
+        localStorage.setItem("refresh_token", refresh);
+        localStorage.setItem("user", JSON.stringify(normalizedUser));
 
-    /* ==========================================
-       Save Auth Data
-    ========================================== */
-
-    const saveAuthData = (
-        access,
-        refresh,
-        userData
-    ) => {
-
-        localStorage.setItem(
-            "access_token",
-            access
-        );
-
-
-        localStorage.setItem(
-            "refresh_token",
-            refresh
-        );
-
-
-        const normalizedUser =
-            normalizeUser(
-                userData
-            );
-
-
-        localStorage.setItem(
-            "user",
-            JSON.stringify(
-                normalizedUser
-            )
-        );
-
-
-        setUser(
-            normalizedUser
-        );
-
+        setUser(normalizedUser);
 
         return normalizedUser;
     };
 
 
-    /* ==========================================
-       Clear Auth Data
-    ========================================== */
-
     const clearAuthData = () => {
-
-        localStorage.removeItem(
-            "access_token"
-        );
-
-
-        localStorage.removeItem(
-            "refresh_token"
-        );
-
-
-        localStorage.removeItem(
-            "user"
-        );
-
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("refresh_token");
+        localStorage.removeItem("user");
 
         setUser(null);
-
     };
 
 
-    /* ==========================================
-       Load Current User
-    ========================================== */
-
     useEffect(() => {
+        let cancelled = false;
 
         const loadUser = async () => {
+            const accessToken = localStorage.getItem("access_token");
+            const savedUser = localStorage.getItem("user");
 
-            const accessToken =
-                localStorage.getItem(
-                    "access_token"
-                );
-
-
-            if (!accessToken) {
-
-                setInitializing(false);
-
-                return;
-
-            }
-
+            let cachedUser = null;
 
             try {
-
-                const response =
-                    await api.get(
-                        "/users/me/"
-                    );
-
-
-                const normalizedUser =
-                    normalizeUser(
-                        response.data
-                    );
-
-
-                setUser(
-                    normalizedUser
+                cachedUser = normalizeUser(
+                    savedUser ? JSON.parse(savedUser) : null
                 );
+            } catch {
+                localStorage.removeItem("user");
+            }
 
+            if (!accessToken) {
+                if (!cancelled) {
+                    setUser(null);
+                    setInitializing(false);
+                }
+
+                return;
+            }
+
+            try {
+                const response = await api.get("/users/me/");
+
+                if (cancelled) {
+                    return;
+                }
+
+                const currentUser = normalizeUser(response.data);
+
+                if (!currentUser) {
+                    clearAuthData();
+                    return;
+                }
+
+                setUser(currentUser);
 
                 localStorage.setItem(
                     "user",
-                    JSON.stringify(
-                        normalizedUser
-                    )
+                    JSON.stringify(currentUser)
                 );
-
-
             } catch (error) {
+                if (cancelled) {
+                    return;
+                }
 
                 console.error(
                     "LOAD USER ERROR:",
-                    error?.response?.data ||
-                    error
+                    error?.response?.data || error
                 );
 
-
-                clearAuthData();
-
+                if (error?.response?.status === 401) {
+                    clearAuthData();
+                } else if (cachedUser) {
+                    // Keep the cached session during temporary server errors.
+                    setUser(cachedUser);
+                } else {
+                    setUser(null);
+                }
             } finally {
-
-                setInitializing(false);
-
+                if (!cancelled) {
+                    setInitializing(false);
+                }
             }
-
         };
-
 
         loadUser();
 
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
 
-    /* ==========================================
-       Login
-    ========================================== */
-
-    const login = async (
-        username,
-        password
-    ) => {
-
+    const login = async (username, password) => {
         setLoading(true);
 
-
         try {
-
-            const response =
-                await api.post(
-                    "/users/login/",
-                    {
-                        username,
-                        password,
-                    }
-                );
-
+            const response = await api.post("/users/login/", {
+                username: username.trim(),
+                password,
+            });
 
             const {
                 access,
@@ -372,232 +264,122 @@ export const AuthProvider = ({
                 user: userData,
             } = response.data;
 
-
-            if (
-                !access ||
-                !refresh ||
-                !userData
-            ) {
-
-                throw new Error(
-                    "Invalid login response."
-                );
-
-            }
-
-
-            const normalizedUser =
-                saveAuthData(
-                    access,
-                    refresh,
-                    userData
-                );
-
-
-            toast.success(
-                "تم تسجيل الدخول بنجاح"
+            const normalizedUser = saveAuthData(
+                access,
+                refresh,
+                userData
             );
 
+            toast.success("تم تسجيل الدخول بنجاح");
 
             return {
                 user: normalizedUser,
                 errors: null,
             };
-
-
         } catch (error) {
-
             console.error(
                 "LOGIN ERROR:",
-                error?.response?.data ||
-                error
+                error?.response?.data || error
             );
-
-
-            console.log(
-                "LOGIN API ERROR:",
-                JSON.stringify(
-                    error?.response?.data,
-                    null,
-                    2
-                )
-            );
-
-
-            const errors =
-                getApiErrors(error);
-
 
             return {
                 user: null,
-                errors,
+                errors: getApiErrors(error),
             };
-
-
         } finally {
-
             setLoading(false);
-
         }
-
     };
 
 
-    /* ==========================================
-       Register
-    ========================================== */
-
-    const register = async (
-        data
-    ) => {
-
+    const register = async (data) => {
         setLoading(true);
 
-
         try {
-
-            await api.post(
+            const response = await api.post(
                 "/users/register/",
                 data
             );
 
+            const message =
+                response.data?.message ||
+                "تم إنشاء الحساب. راجع بريدك الإلكتروني لتأكيد الحساب قبل تسجيل الدخول.";
 
-            toast.success(
-                "تم إنشاء الحساب بنجاح"
-            );
-
-
-            const result =
-                await login(
-                    data.username,
-                    data.password
-                );
-
-
-            return result;
-
-
-        } catch (error) {
-
-            console.error(
-                "REGISTER ERROR:",
-                error?.response?.data ||
-                error
-            );
-
-
-            const errors =
-                getApiErrors(error);
-
+            toast.success(message);
 
             return {
                 user: null,
-                errors,
+                errors: null,
+                registered: true,
+                message,
             };
+        } catch (error) {
+            console.error(
+                "REGISTER ERROR:",
+                error?.response?.data || error
+            );
 
-
+            return {
+                user: null,
+                errors: getApiErrors(error),
+                registered: false,
+            };
         } finally {
-
             setLoading(false);
-
         }
-
     };
 
 
-    /* ==========================================
-       Logout
-    ========================================== */
+    const logout = async () => {
+        const refreshToken = localStorage.getItem("refresh_token");
 
-    const logout = () => {
-
-        clearAuthData();
-
-
-        toast.success(
-            "تم تسجيل الخروج"
-        );
-
+        try {
+            if (refreshToken) {
+                await api.post("/users/logout/", {
+                    refresh: refreshToken,
+                });
+            }
+        } catch (error) {
+            // Local logout must still work if the API is unavailable.
+            console.error(
+                "LOGOUT API ERROR:",
+                error?.response?.data || error
+            );
+        } finally {
+            clearAuthData();
+            toast.success("تم تسجيل الخروج");
+        }
     };
 
-
-    /* ==========================================
-       Context
-    ========================================== */
 
     const value = {
-
         user,
-
+        setUser,
         loading,
-
         initializing,
-
         login,
-
         register,
-
         logout,
 
+        role: user?.role,
+        isAuthenticated: Boolean(user),
 
-        role:
-            user?.role,
-
-
-        isAuthenticated:
-            Boolean(user),
-
-
-        isOwner:
-            user?.role === "OWNER",
-
-
-        isManager:
-            user?.role === "MANAGER",
-
-
-        isPharmacist:
-            user?.role === "PHARMACIST",
-
-
-        isCashier:
-            user?.role === "CASHIER",
-
-
-        isAccountant:
-            user?.role === "ACCOUNTANT",
-
-
-        isDelivery:
-            user?.role === "DELIVERY",
-
-
-        isCustomer:
-            user?.role === "CUSTOMER",
-
+        isOwner: user?.role === "OWNER",
+        isManager: user?.role === "MANAGER",
+        isPharmacist: user?.role === "PHARMACIST",
+        isCashier: user?.role === "CASHIER",
+        isAccountant: user?.role === "ACCOUNTANT",
+        isDelivery: user?.role === "DELIVERY",
+        isCustomer: user?.role === "CUSTOMER",
     };
 
 
     return (
-
-        <AuthContext.Provider
-            value={value}
-        >
-
+        <AuthContext.Provider value={value}>
             {children}
-
         </AuthContext.Provider>
-
     );
-
 };
 
 
-/* ==========================================
-   Hook
-========================================== */
-
-export const useAuth = () =>
-    useContext(
-        AuthContext
-    );
+export const useAuth = () => useContext(AuthContext);

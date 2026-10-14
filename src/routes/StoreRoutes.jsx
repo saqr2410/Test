@@ -21,7 +21,6 @@ import OrderDetails from "../pages/store/orders/OrderDetails";
 import UploadPrescription from "../pages/store/prescriptions/UploadPrescription";
 
 import Patients from "../pages/store/patients/Patients";
-import PatientProfile from "../pages/store/patients/PatientProfile";
 import CreatePatient from "../pages/store/patients/CreatePatient";
 import EditPatient from "../pages/store/patients/EditPatient";
 
@@ -150,6 +149,8 @@ export default function StoreRoutes() {
                 }
             />
 
+            {/* Patients */}
+
             <Route
                 path="/patients"
                 element={
@@ -173,17 +174,6 @@ export default function StoreRoutes() {
             />
 
             <Route
-                path="/patients/:id/profile"
-                element={
-                    <ProtectedRoute>
-                        <StoreLayout>
-                            <PatientProfile />
-                        </StoreLayout>
-                    </ProtectedRoute>
-                }
-            />
-
-            <Route
                 path="/patients/:id/edit"
                 element={
                     <ProtectedRoute>
@@ -193,6 +183,8 @@ export default function StoreRoutes() {
                     </ProtectedRoute>
                 }
             />
+
+            {/* Account */}
 
             <Route
                 path="/account"

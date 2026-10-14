@@ -57,19 +57,12 @@ import logo from "../../assets/logo.png";
 // =========================================================
 
 const CATEGORY_ICONS = {
-
     "الأدوية": Pill,
-
     "الفيتامينات": HeartPulse,
-
     "الأطفال": Baby,
-
     "العناية الشخصية": ShieldPlus,
-
     "المستلزمات الطبية": Syringe,
-
     "الأجهزة الطبية": Stethoscope
-
 };
 
 
@@ -87,7 +80,6 @@ export default function Navbar() {
     const favoriteCount = 0;
 
     const navigate = useNavigate();
-
     const location = useLocation();
 
     const [
@@ -165,10 +157,22 @@ export default function Navbar() {
 
         };
 
-
         loadCategories();
 
     }, []);
+
+
+    // =====================================================
+    // Close Menus On Navigation
+    // =====================================================
+
+    useEffect(() => {
+
+        setAccountOpen(false);
+        setMobileOpen(false);
+        setCategoryOpen(false);
+
+    }, [location.pathname]);
 
 
     // =====================================================
@@ -180,7 +184,6 @@ export default function Navbar() {
         logout();
 
         setAccountOpen(false);
-
         setMobileOpen(false);
 
         navigate("/login");
@@ -214,7 +217,7 @@ export default function Navbar() {
 
         {
             name: "الملف الصحي",
-            path: "/patients/create",
+            path: "/account/health",
             icon: <FileUser size={18} />
         },
 
@@ -239,6 +242,93 @@ export default function Navbar() {
     ];
 
 
+    // =====================================================
+    // Link Active State
+    // =====================================================
+
+    const isLinkActive = (item) => {
+
+        if (item.state?.scrollTo) {
+
+            return (
+                location.pathname === "/" &&
+                location.state?.scrollTo ===
+                item.state.scrollTo
+            );
+
+        }
+
+        if (item.path === "/") {
+
+            return (
+                location.pathname === "/" &&
+                !location.state?.scrollTo
+            );
+
+        }
+
+        if (item.path === "/products") {
+
+            return (
+                location.pathname === "/products" ||
+                location.pathname.startsWith("/products/")
+            );
+
+        }
+
+        return (
+            location.pathname === item.path ||
+            (
+                item.path === "/account/health" &&
+                location.pathname === "/account/health"
+            )
+        );
+
+    };
+
+
+    // =====================================================
+    // Render Navbar Link
+    // =====================================================
+
+    const renderNavLink = (item, index) => (
+
+        <NavLink
+            key={index}
+            to={item.path}
+            state={item.state || null}
+            className={`
+                flex
+                items-center
+                gap-2
+                px-4
+                py-2
+                rounded-full
+                text-sm
+                font-semibold
+                transition-all
+                duration-300
+
+                ${isLinkActive(item)
+                    ? "bg-[#5B2A86] text-white shadow-md"
+                    : "text-gray-600 hover:text-[#5B2A86] hover:bg-[#5B2A86]/10"
+                }
+            `}
+        >
+
+            {item.icon}
+
+            {item.name}
+
+        </NavLink>
+
+    );
+
+
+    // =====================================================
+    // Render
+    // =====================================================
+
     return (
 
         <>
@@ -259,9 +349,7 @@ export default function Navbar() {
                     "
                 >
 
-                    {/* =====================================================
-                        LOGO (MATCHING THE IMAGE EXACTLY)
-                    ====================================================== */}
+                    {/* LOGO */}
 
                     <Link
                         to="/"
@@ -274,23 +362,15 @@ export default function Navbar() {
                         "
                     >
 
-                        {/* Logo Image Icon */}
                         <div
                             className="
-                                w-14
-                                h-14
-                                flex
-                                items-center
-                                justify-center
-                                overflow-hidden
-                                rounded-2xl
-                                bg-white
-                                border
-                                border-gray-100
+                                w-14 h-14
+                                flex items-center justify-center
+                                overflow-hidden rounded-2xl
+                                bg-white border border-gray-100
                                 shadow-md
                                 group-hover:scale-105
-                                transition
-                                duration-300
+                                transition duration-300
                                 shrink-0
                             "
                         >
@@ -298,35 +378,25 @@ export default function Navbar() {
                             <img
                                 src={logo}
                                 alt="Dr. Ahmed Rashed Pharmacy"
-                                className="
-                                    w-full
-                                    h-full
-                                    object-contain
-                                "
+                                className="w-full h-full object-contain"
                             />
 
                         </div>
 
-
-                        {/* Text Logo - Exactly like the image */}
                         <div className="flex flex-col items-center justify-center leading-none text-center">
 
-                            {/* 1. صيدلية */}
                             <span className="text-[10px] font-bold text-[#5B2A86] mb-0.5 whitespace-nowrap">
                                 صيدلية
                             </span>
 
-                            {/* 2. د. أحمد راشد - في سطر واحد */}
                             <span className="text-lg font-black text-[#5B2A86] leading-none mb-0.5 whitespace-nowrap">
                                 د. أحمد راشد
                             </span>
 
-                            {/* 3. Dr. AHMED RASHED - في سطر واحد */}
                             <span className="text-[9px] font-extrabold text-[#5B2A86] tracking-[0.15em] uppercase leading-none mb-0.5 whitespace-nowrap">
                                 Dr. AHMED RASHED
                             </span>
 
-                            {/* 4. PHARMACY - في سطر واحد */}
                             <span className="text-[9px] font-extrabold text-[#5B2A86] tracking-[0.15em] uppercase leading-none whitespace-nowrap">
                                 PHARMACY
                             </span>
@@ -336,107 +406,33 @@ export default function Navbar() {
                     </Link>
 
 
-                    {/* =====================================================
-                        DESKTOP LINKS
-                    ====================================================== */}
+                    {/* DESKTOP LINKS */}
 
                     <nav
                         className="
-                            hidden
-                            lg:flex
-                            items-center
-                            gap-1
+                            hidden lg:flex
+                            items-center gap-1
                             mr-auto
                         "
                     >
 
-                        {links.map(
-                            (
-                                item,
-                                index
-                            ) => {
-
-                                const active =
-                                    item.path === "/"
-
-                                        ? location.pathname === "/" &&
-                                        (
-                                            (
-                                                item.state?.scrollTo === undefined &&
-                                                location.state?.scrollTo === undefined
-                                            ) ||
-
-                                            item.state?.scrollTo ===
-                                            location.state?.scrollTo
-                                        )
-
-                                        : location.pathname === item.path;
+                        {links.map(renderNavLink)}
 
 
-                                return (
-
-                                    <NavLink
-                                        key={index}
-                                        to={item.path}
-                                        state={item.state || null}
-                                        className={`
-                                            flex
-                                            items-center
-                                            gap-2
-                                            px-4
-                                            py-2
-                                            rounded-full
-                                            text-sm
-                                            font-semibold
-                                            transition-all
-                                            duration-300
-
-                                            ${active
-                                                ? "bg-[#5B2A86] text-white shadow-md"
-                                                : "text-gray-600 hover:text-[#5B2A86] hover:bg-[#5B2A86]/10"
-                                            }
-                                        `}
-                                    >
-
-                                        {item.icon}
-
-                                        {item.name}
-
-                                    </NavLink>
-
-                                );
-
-                            }
-                        )}
-
-
-                        {/* =================================================
-                            CATEGORIES
-                        ================================================== */}
+                        {/* CATEGORIES */}
 
                         {categories.length > 0 && (
 
-                            <div
-                                className="
-                                    relative
-                                "
-                            >
+                            <div className="relative">
 
                                 <button
                                     onClick={() =>
-                                        setCategoryOpen(
-                                            !categoryOpen
-                                        )
+                                        setCategoryOpen(!categoryOpen)
                                     }
                                     className="
-                                        flex
-                                        items-center
-                                        gap-1
-                                        px-4
-                                        py-2
-                                        rounded-full
-                                        text-sm
-                                        font-semibold
+                                        flex items-center gap-1
+                                        px-4 py-2 rounded-full
+                                        text-sm font-semibold
                                         text-gray-600
                                         hover:text-[#5B2A86]
                                         hover:bg-[#5B2A86]/10
@@ -446,9 +442,7 @@ export default function Navbar() {
 
                                     الأقسام
 
-                                    <ChevronDown
-                                        size={16}
-                                    />
+                                    <ChevronDown size={16} />
 
                                 </button>
 
@@ -457,139 +451,89 @@ export default function Navbar() {
 
                                     <div
                                         className="
-                                            absolute
-                                            top-12
-                                            right-0
-                                            w-64
-                                            bg-white/95
+                                            absolute top-12 right-0
+                                            w-64 bg-white/95
                                             backdrop-blur-xl
-                                            rounded-2xl
-                                            shadow-2xl
-                                            border
-                                            border-gray-100
-                                            p-4
-                                            z-50
+                                            rounded-2xl shadow-2xl
+                                            border border-gray-100
+                                            p-4 z-50
                                         "
                                     >
 
                                         <h3
                                             className="
-                                                flex
-                                                items-center
-                                                gap-2
-                                                font-bold
-                                                text-[#5B2A86]
+                                                flex items-center gap-2
+                                                font-bold text-[#5B2A86]
                                                 mb-3
                                             "
                                         >
-
-
-
                                             تصفح الأقسام
-
                                         </h3>
 
 
                                         {categoriesLoading ? (
 
-                                            <div
-                                                className="
-                                                    grid
-                                                    grid-cols-2
-                                                    gap-2
-                                                "
-                                            >
+                                            <div className="grid grid-cols-2 gap-2">
 
                                                 {Array.from(
-                                                    {
-                                                        length: 6
-                                                    }
-                                                ).map(
-                                                    (
-                                                        _,
-                                                        index
-                                                    ) => (
+                                                    { length: 6 }
+                                                ).map((_, index) => (
 
-                                                        <div
-                                                            key={index}
-                                                            className="
-                                                                h-10
-                                                                rounded-xl
-                                                                bg-gray-100
-                                                                animate-pulse
-                                                            "
-                                                        />
+                                                    <div
+                                                        key={index}
+                                                        className="
+                                                            h-10 rounded-xl
+                                                            bg-gray-100
+                                                            animate-pulse
+                                                        "
+                                                    />
 
-                                                    )
-                                                )}
+                                                ))}
 
                                             </div>
 
                                         ) : (
 
-                                            <div
-                                                className="
-                                                    grid
-                                                    grid-cols-2
-                                                    gap-2
-                                                "
-                                            >
+                                            <div className="grid grid-cols-2 gap-2">
 
-                                                {categories.map(
-                                                    category => {
+                                                {categories.map(category => {
 
-                                                        const Icon =
-                                                            CATEGORY_ICONS[
-                                                            category.name
-                                                            ] ||
-                                                            Package;
+                                                    const Icon =
+                                                        CATEGORY_ICONS[
+                                                        category.name
+                                                        ] || Package;
 
+                                                    return (
 
-                                                        return (
+                                                        <Link
+                                                            key={category.id}
+                                                            to={`/products?category=${category.id}`}
+                                                            onClick={() =>
+                                                                setCategoryOpen(false)
+                                                            }
+                                                            className="
+                                                                flex flex-col
+                                                                items-center justify-center
+                                                                gap-1 text-xs text-center
+                                                                p-3 rounded-xl
+                                                                bg-purple-50
+                                                                hover:bg-[#5B2A86]
+                                                                hover:text-white
+                                                                transition
+                                                            "
+                                                        >
 
-                                                            <Link
-                                                                key={
-                                                                    category.id
-                                                                }
-                                                                to={`/products?category=${category.id}`}
-                                                                onClick={() =>
-                                                                    setCategoryOpen(
-                                                                        false
-                                                                    )
-                                                                }
-                                                                className="
-                                                                    flex
-                                                                    flex-col
-                                                                    items-center
-                                                                    justify-center
-                                                                    gap-1
-                                                                    text-xs
-                                                                    text-center
-                                                                    p-3
-                                                                    rounded-xl
-                                                                    bg-purple-50
-                                                                    hover:bg-[#5B2A86]
-                                                                    hover:text-white
-                                                                    transition
-                                                                "
-                                                            >
+                                                            <Icon size={18} />
 
-                                                                <Icon
-                                                                    size={18}
-                                                                />
+                                                            <span>
+                                                                {category.name}
+                                                            </span>
 
-                                                                <span>
-                                                                    {
-                                                                        category.name
-                                                                    }
-                                                                </span>
+                                                        </Link>
 
-                                                            </Link>
+                                                    );
 
-                                                        );
-
-                                                    }
-                                                )}
+                                                })}
 
                                             </div>
 
@@ -606,21 +550,11 @@ export default function Navbar() {
                     </nav>
 
 
-                    {/* =====================================================
-                        ACTIONS
-                    ====================================================== */}
+                    {/* ACTIONS */}
 
-                    <div
-                        className="
-                            flex
-                            items-center
-                            gap-2
-                        "
-                    >
+                    <div className="flex items-center gap-2">
 
-                        {/* =================================================
-                            FAVORITES
-                        ================================================== */}
+                        {/* FAVORITES */}
 
                         <Link
                             to={
@@ -640,101 +574,61 @@ export default function Navbar() {
 
                             }}
                             className="
-                                hidden
-                                md:flex
-                                relative
-                                w-10
-                                h-10
-                                items-center
-                                justify-center
-                                rounded-full
-                                hover:bg-purple-50
-                                text-gray-500
-                                hover:text-[#5B2A86]
+                                hidden md:flex relative
+                                w-10 h-10 items-center justify-center
+                                rounded-full hover:bg-purple-50
+                                text-gray-500 hover:text-[#5B2A86]
                                 transition
                             "
                         >
 
-                            <Heart
-                                size={21}
-                            />
+                            <Heart size={21} />
 
+                            {user && favoriteCount > 0 && (
 
-                            {user &&
-                                favoriteCount > 0 && (
+                                <span
+                                    className="
+                                        absolute -top-1 -right-1
+                                        min-w-[18px] h-[18px] px-1
+                                        rounded-full bg-red-500
+                                        text-white text-[10px] font-bold
+                                        flex items-center justify-center
+                                    "
+                                >
+                                    {favoriteCount}
+                                </span>
 
-                                    <span
-                                        className="
-                                            absolute
-                                            -top-1
-                                            -right-1
-                                            min-w-[18px]
-                                            h-[18px]
-                                            px-1
-                                            rounded-full
-                                            bg-red-500
-                                            text-white
-                                            text-[10px]
-                                            font-bold
-                                            flex
-                                            items-center
-                                            justify-center
-                                        "
-                                    >
-                                        {favoriteCount}
-                                    </span>
-
-                                )}
+                            )}
 
                         </Link>
 
 
-                        {/* =================================================
-                            CART
-                        ================================================== */}
+                        {/* CART */}
 
                         <Link
                             to="/cart"
                             className="
-                                relative
-                                w-10
-                                h-10
-                                flex
-                                items-center
-                                justify-center
-                                rounded-full
-                                hover:bg-purple-50
-                                text-gray-500
-                                hover:text-[#5B2A86]
+                                relative w-10 h-10
+                                flex items-center justify-center
+                                rounded-full hover:bg-purple-50
+                                text-gray-500 hover:text-[#5B2A86]
                                 transition
                             "
                         >
 
-                            <ShoppingCart
-                                size={22}
-                            />
-
+                            <ShoppingCart size={22} />
 
                             {cartCount > 0 && (
 
                                 <span
                                     className="
-                                        absolute
-                                        -top-1
-                                        -right-1
-                                        min-w-5
-                                        h-5
-                                        px-1
+                                        absolute -top-1 -right-1
+                                        min-w-5 h-5 px-1
                                         rounded-full
                                         bg-gradient-to-r
-                                        from-red-500
-                                        to-pink-500
-                                        text-white
-                                        text-[11px]
-                                        font-bold
-                                        flex
-                                        items-center
-                                        justify-center
+                                        from-red-500 to-pink-500
+                                        text-white text-[11px] font-bold
+                                        flex items-center justify-center
                                     "
                                 >
                                     {cartCount}
@@ -745,59 +639,40 @@ export default function Navbar() {
                         </Link>
 
 
-                        {/* =================================================
-                            ACCOUNT
-                        ================================================== */}
+                        {/* ACCOUNT */}
 
                         {user ? (
 
-                            <div
-                                className="
-                                    relative
-                                "
-                            >
+                            <div className="relative">
 
                                 <button
                                     onClick={() =>
-                                        setAccountOpen(
-                                            !accountOpen
-                                        )
+                                        setAccountOpen(!accountOpen)
                                     }
                                     className="
-                                        flex
-                                        items-center
-                                        gap-2
-                                        px-3
-                                        py-2
-                                        rounded-full
-                                        bg-purple-50
-                                        hover:bg-purple-100
+                                        flex items-center gap-2
+                                        px-3 py-2 rounded-full
+                                        bg-purple-50 hover:bg-purple-100
                                         transition
                                     "
                                 >
 
                                     <User
                                         size={18}
-                                        className="
-                                            text-[#5B2A86]
-                                        "
+                                        className="text-[#5B2A86]"
                                     />
 
                                     <span
                                         className="
-                                            hidden
-                                            md:block
-                                            text-sm
-                                            font-bold
+                                            hidden md:block
+                                            text-sm font-bold
                                             text-[#5B2A86]
                                         "
                                     >
                                         {user.name || "حسابي"}
                                     </span>
 
-                                    <ChevronDown
-                                        size={15}
-                                    />
+                                    <ChevronDown size={15} />
 
                                 </button>
 
@@ -806,17 +681,9 @@ export default function Navbar() {
 
                                     <div
                                         className="
-                                            absolute
-                                            left-0
-                                            mt-3
-                                            w-60
-                                            bg-white
-                                            rounded-2xl
-                                            shadow-2xl
-                                            border
-                                            border-gray-100
-                                            p-2
-                                            z-50
+                                            absolute left-0 mt-3 w-60
+                                            bg-white rounded-2xl shadow-2xl
+                                            border border-gray-100 p-2 z-50
                                         "
                                     >
 
@@ -824,71 +691,37 @@ export default function Navbar() {
 
                                         <div
                                             className="
-                                                px-3
-                                                py-3
-                                                mb-1
-                                                rounded-xl
+                                                px-3 py-3 mb-1 rounded-xl
                                                 bg-gradient-to-r
-                                                from-purple-50
-                                                to-violet-50
+                                                from-purple-50 to-violet-50
                                             "
                                         >
 
-                                            <div
-                                                className="
-                                                    flex
-                                                    items-center
-                                                    gap-3
-                                                "
-                                            >
+                                            <div className="flex items-center gap-3">
 
                                                 <div
                                                     className="
-                                                        w-10
-                                                        h-10
-                                                        rounded-xl
-                                                        bg-[#5B2A86]
-                                                        text-white
-                                                        flex
-                                                        items-center
-                                                        justify-center
+                                                        w-10 h-10 rounded-xl
+                                                        bg-[#5B2A86] text-white
+                                                        flex items-center justify-center
                                                         shadow-md
                                                     "
                                                 >
-
-                                                    <User
-                                                        size={19}
-                                                    />
-
+                                                    <User size={19} />
                                                 </div>
 
-
-                                                <div
-                                                    className="
-                                                        min-w-0
-                                                    "
-                                                >
+                                                <div className="min-w-0">
 
                                                     <p
                                                         className="
-                                                            text-sm
-                                                            font-bold
-                                                            text-gray-800
-                                                            truncate
+                                                            text-sm font-bold
+                                                            text-gray-800 truncate
                                                         "
                                                     >
-                                                        {
-                                                            user.name ||
-                                                            "حسابي"
-                                                        }
+                                                        {user.name || "حسابي"}
                                                     </p>
 
-                                                    <p
-                                                        className="
-                                                            text-[11px]
-                                                            text-gray-400
-                                                        "
-                                                    >
+                                                    <p className="text-[11px] text-gray-400">
                                                         حسابك الشخصي
                                                     </p>
 
@@ -904,33 +737,21 @@ export default function Navbar() {
                                         <Link
                                             to="/account/profile"
                                             onClick={() =>
-                                                setAccountOpen(
-                                                    false
-                                                )
+                                                setAccountOpen(false)
                                             }
                                             className="
-                                                flex
-                                                items-center
-                                                gap-3
-                                                p-3
-                                                rounded-xl
-                                                hover:bg-purple-50
-                                                transition
+                                                flex items-center gap-3
+                                                p-3 rounded-xl
+                                                hover:bg-purple-50 transition
                                             "
                                         >
 
                                             <User
                                                 size={18}
-                                                className="
-                                                    text-[#5B2A86]
-                                                "
+                                                className="text-[#5B2A86]"
                                             />
 
-                                            <span
-                                                className="
-                                                    font-medium
-                                                "
-                                            >
+                                            <span className="font-medium">
                                                 الملف الشخصي
                                             </span>
 
@@ -940,35 +761,23 @@ export default function Navbar() {
                                         {/* HEALTH PROFILE */}
 
                                         <Link
-                                            to="/patients/create"
+                                            to="/account/health"
                                             onClick={() =>
-                                                setAccountOpen(
-                                                    false
-                                                )
+                                                setAccountOpen(false)
                                             }
                                             className="
-                                                flex
-                                                items-center
-                                                gap-3
-                                                p-3
-                                                rounded-xl
-                                                hover:bg-purple-50
-                                                transition
+                                                flex items-center gap-3
+                                                p-3 rounded-xl
+                                                hover:bg-purple-50 transition
                                             "
                                         >
 
                                             <FileUser
                                                 size={18}
-                                                className="
-                                                    text-[#5B2A86]
-                                                "
+                                                className="text-[#5B2A86]"
                                             />
 
-                                            <span
-                                                className="
-                                                    font-medium
-                                                "
-                                            >
+                                            <span className="font-medium">
                                                 الملف الصحي
                                             </span>
 
@@ -980,33 +789,21 @@ export default function Navbar() {
                                         <Link
                                             to="/orders"
                                             onClick={() =>
-                                                setAccountOpen(
-                                                    false
-                                                )
+                                                setAccountOpen(false)
                                             }
                                             className="
-                                                flex
-                                                items-center
-                                                gap-3
-                                                p-3
-                                                rounded-xl
-                                                hover:bg-purple-50
-                                                transition
+                                                flex items-center gap-3
+                                                p-3 rounded-xl
+                                                hover:bg-purple-50 transition
                                             "
                                         >
 
                                             <Package
                                                 size={18}
-                                                className="
-                                                    text-[#5B2A86]
-                                                "
+                                                className="text-[#5B2A86]"
                                             />
 
-                                            <span
-                                                className="
-                                                    font-medium
-                                                "
-                                            >
+                                            <span className="font-medium">
                                                 طلباتي
                                             </span>
 
@@ -1018,33 +815,21 @@ export default function Navbar() {
                                         <Link
                                             to="/account/favorites"
                                             onClick={() =>
-                                                setAccountOpen(
-                                                    false
-                                                )
+                                                setAccountOpen(false)
                                             }
                                             className="
-                                                flex
-                                                items-center
-                                                gap-3
-                                                p-3
-                                                rounded-xl
-                                                hover:bg-purple-50
-                                                transition
+                                                flex items-center gap-3
+                                                p-3 rounded-xl
+                                                hover:bg-purple-50 transition
                                             "
                                         >
 
                                             <Heart
                                                 size={18}
-                                                className="
-                                                    text-[#5B2A86]
-                                                "
+                                                className="text-[#5B2A86]"
                                             />
 
-                                            <span
-                                                className="
-                                                    font-medium
-                                                "
-                                            >
+                                            <span className="font-medium">
                                                 المفضلة
                                             </span>
 
@@ -1056,74 +841,45 @@ export default function Navbar() {
                                         <Link
                                             to="/account/settings"
                                             onClick={() =>
-                                                setAccountOpen(
-                                                    false
-                                                )
+                                                setAccountOpen(false)
                                             }
                                             className="
-                                                flex
-                                                items-center
-                                                gap-3
-                                                p-3
-                                                rounded-xl
-                                                hover:bg-purple-50
-                                                transition
+                                                flex items-center gap-3
+                                                p-3 rounded-xl
+                                                hover:bg-purple-50 transition
                                             "
                                         >
 
                                             <Settings
                                                 size={18}
-                                                className="
-                                                    text-[#5B2A86]
-                                                "
+                                                className="text-[#5B2A86]"
                                             />
 
-                                            <span
-                                                className="
-                                                    font-medium
-                                                "
-                                            >
+                                            <span className="font-medium">
                                                 الإعدادات
                                             </span>
 
                                         </Link>
 
 
-                                        <hr
-                                            className="
-                                                my-2
-                                            "
-                                        />
+                                        <hr className="my-2" />
 
 
                                         {/* LOGOUT */}
 
                                         <button
-                                            onClick={
-                                                handleLogout
-                                            }
+                                            onClick={handleLogout}
                                             className="
-                                                w-full
-                                                flex
-                                                items-center
-                                                gap-3
-                                                p-3
-                                                rounded-xl
-                                                text-red-500
-                                                hover:bg-red-50
+                                                w-full flex items-center gap-3
+                                                p-3 rounded-xl
+                                                text-red-500 hover:bg-red-50
                                                 transition
                                             "
                                         >
 
-                                            <LogOut
-                                                size={18}
-                                            />
+                                            <LogOut size={18} />
 
-                                            <span
-                                                className="
-                                                    font-medium
-                                                "
-                                            >
+                                            <span className="font-medium">
                                                 تسجيل الخروج
                                             </span>
 
@@ -1137,54 +893,33 @@ export default function Navbar() {
 
                         ) : (
 
-                            <div
-                                className="
-                                    hidden
-                                    md:flex
-                                    items-center
-                                    gap-2
-                                "
-                            >
+                            <div className="hidden md:flex items-center gap-2">
 
                                 <Link
                                     to="/login"
                                     className="
-                                        px-4
-                                        py-2
-                                        rounded-full
-                                        text-[#5B2A86]
-                                        font-bold
-                                        hover:bg-purple-50
-                                        transition
+                                        px-4 py-2 rounded-full
+                                        text-[#5B2A86] font-bold
+                                        hover:bg-purple-50 transition
                                     "
                                 >
                                     دخول
                                 </Link>
 
-
                                 <Link
                                     to="/register"
                                     className="
-                                        flex
-                                        items-center
-                                        gap-2
-                                        px-5
-                                        py-2
-                                        rounded-full
-                                        text-white
-                                        font-bold
+                                        flex items-center gap-2
+                                        px-5 py-2 rounded-full
+                                        text-white font-bold
                                         bg-gradient-to-r
-                                        from-violet-600
-                                        to-purple-600
-                                        shadow-lg
-                                        hover:scale-105
+                                        from-violet-600 to-purple-600
+                                        shadow-lg hover:scale-105
                                         transition
                                     "
                                 >
 
-                                    <UserPlus
-                                        size={16}
-                                    />
+                                    <UserPlus size={16} />
 
                                     إنشاء حساب
 
@@ -1195,26 +930,16 @@ export default function Navbar() {
                         )}
 
 
-                        {/* =================================================
-                            MOBILE BUTTON
-                        ================================================== */}
+                        {/* MOBILE BUTTON */}
 
                         <button
                             onClick={() =>
-                                setMobileOpen(
-                                    !mobileOpen
-                                )
+                                setMobileOpen(!mobileOpen)
                             }
                             className="
-                                lg:hidden
-                                w-10
-                                h-10
-                                rounded-full
-                                bg-purple-50
-                                flex
-                                items-center
-                                justify-center
-                                text-[#5B2A86]
+                                lg:hidden w-10 h-10 rounded-full
+                                bg-purple-50 flex items-center
+                                justify-center text-[#5B2A86]
                             "
                         >
 
@@ -1230,120 +955,36 @@ export default function Navbar() {
                 </div>
 
 
-                {/* =========================================================
-                    MOBILE MENU
-                ========================================================== */}
+                {/* MOBILE MENU */}
 
                 {mobileOpen && (
 
                     <div
                         className="
-                            lg:hidden
-                            bg-white
-                            border-t
-                            px-5
-                            py-4
-                            shadow-lg
+                            lg:hidden bg-white border-t
+                            px-5 py-4 shadow-lg
                         "
                     >
 
-                        <div
-                            className="
-                                flex
-                                flex-col
-                                gap-2
-                            "
-                        >
+                        <div className="flex flex-col gap-2">
 
-                            {links.map(
-                                (
-                                    item,
-                                    index
-                                ) => {
-
-                                    const active =
-                                        item.path === "/"
-
-                                            ? location.pathname === "/" &&
-                                            (
-                                                (
-                                                    item.state?.scrollTo === undefined &&
-                                                    location.state?.scrollTo === undefined
-                                                ) ||
-
-                                                item.state?.scrollTo ===
-                                                location.state?.scrollTo
-                                            )
-
-                                            : location.pathname === item.path;
-
-
-                                    return (
-
-                                        <NavLink
-                                            key={index}
-                                            to={item.path}
-                                            state={
-                                                item.state ||
-                                                null
-                                            }
-                                            className={`
-                                                flex
-                                                items-center
-                                                gap-2
-                                                px-4
-                                                py-2
-                                                rounded-full
-                                                text-sm
-                                                font-semibold
-                                                transition-all
-                                                duration-300
-
-                                                ${active
-                                                    ? "bg-[#5B2A86] text-white shadow-md"
-                                                    : "text-gray-600 hover:text-[#5B2A86] hover:bg-[#5B2A86]/10"
-                                                }
-                                            `}
-                                        >
-
-                                            {item.icon}
-
-                                            {item.name}
-
-                                        </NavLink>
-
-                                    );
-
-                                }
-                            )}
+                            {links.map(renderNavLink)}
 
 
                             {/* MOBILE CATEGORIES */}
 
                             {categories.length > 0 && (
 
-                                <div
-                                    className="
-                                        pt-2
-                                    "
-                                >
+                                <div className="pt-2">
 
                                     <button
                                         onClick={() =>
-                                            setCategoryOpen(
-                                                !categoryOpen
-                                            )
+                                            setCategoryOpen(!categoryOpen)
                                         }
                                         className="
-                                            w-full
-                                            flex
-                                            items-center
-                                            justify-between
-                                            px-4
-                                            py-2
-                                            rounded-full
-                                            text-sm
-                                            font-semibold
+                                            w-full flex items-center
+                                            justify-between px-4 py-2
+                                            rounded-full text-sm font-semibold
                                             text-gray-600
                                             hover:text-[#5B2A86]
                                             hover:bg-[#5B2A86]/10
@@ -1351,28 +992,18 @@ export default function Navbar() {
                                         "
                                     >
 
-                                        <span
-                                            className="
-                                                flex
-                                                items-center
-                                                gap-2
-                                            "
-                                        >
+                                        <span className="flex items-center gap-2">
 
-                                            <Sparkles
-                                                size={18}
-                                            />
+                                            <Sparkles size={18} />
 
                                             الأقسام
 
                                         </span>
 
-
                                         <ChevronDown
                                             size={16}
                                             className={`
                                                 transition-transform
-
                                                 ${categoryOpen
                                                     ? "rotate-180"
                                                     : ""
@@ -1387,72 +1018,50 @@ export default function Navbar() {
 
                                         <div
                                             className="
-                                                grid
-                                                grid-cols-2
-                                                gap-2
-                                                mt-2
-                                                pr-3
+                                                grid grid-cols-2 gap-2
+                                                mt-2 pr-3
                                             "
                                         >
 
-                                            {categories.map(
-                                                category => {
+                                            {categories.map(category => {
 
-                                                    const Icon =
-                                                        CATEGORY_ICONS[
-                                                        category.name
-                                                        ] ||
-                                                        Package;
+                                                const Icon =
+                                                    CATEGORY_ICONS[
+                                                    category.name
+                                                    ] || Package;
 
+                                                return (
 
-                                                    return (
+                                                    <Link
+                                                        key={category.id}
+                                                        to={`/products?category=${category.id}`}
+                                                        onClick={() => {
 
-                                                        <Link
-                                                            key={
-                                                                category.id
-                                                            }
-                                                            to={`/products?category=${category.id}`}
-                                                            onClick={() => {
+                                                            setCategoryOpen(false);
+                                                            setMobileOpen(false);
 
-                                                                setCategoryOpen(
-                                                                    false
-                                                                );
+                                                        }}
+                                                        className="
+                                                            flex items-center gap-2
+                                                            text-xs p-3 rounded-xl
+                                                            bg-purple-50
+                                                            hover:bg-[#5B2A86]
+                                                            hover:text-white
+                                                            transition
+                                                        "
+                                                    >
 
-                                                                setMobileOpen(
-                                                                    false
-                                                                );
+                                                        <Icon size={17} />
 
-                                                            }}
-                                                            className="
-                                                                flex
-                                                                items-center
-                                                                gap-2
-                                                                text-xs
-                                                                p-3
-                                                                rounded-xl
-                                                                bg-purple-50
-                                                                hover:bg-[#5B2A86]
-                                                                hover:text-white
-                                                                transition
-                                                            "
-                                                        >
+                                                        <span>
+                                                            {category.name}
+                                                        </span>
 
-                                                            <Icon
-                                                                size={17}
-                                                            />
+                                                    </Link>
 
-                                                            <span>
-                                                                {
-                                                                    category.name
-                                                                }
-                                                            </span>
+                                                );
 
-                                                        </Link>
-
-                                                    );
-
-                                                }
-                                            )}
+                                            })}
 
                                         </div>
 

@@ -1,165 +1,166 @@
-﻿import {
-    useState
-} from "react";
-
-import {
-    useAuth
-} from "../../contexts/AuthContext";
+﻿
+import { useState } from "react";
 
 import {
     Link,
-    useNavigate
+    useNavigate,
 } from "react-router-dom";
-
-import {
-    syncCart
-} from "../../services/cart/cartService";
 
 import toast from "react-hot-toast";
 
+import { useAuth } from "../../contexts/AuthContext";
+
+import { syncCart } from "../../services/cart/cartService";
+
+
+const getErrorMessage = (error) => {
+    if (typeof error === "string") {
+        return error;
+    }
+
+    if (Array.isArray(error)) {
+        return error.map(getErrorMessage).join(" ");
+    }
+
+    return "حدث خطأ، حاول مرة أخرى.";
+};
+
 
 const Login = () => {
+    const [username, setUsername] = useState("");
+    const [password, setPassword] = useState("");
+    const [errors, setErrors] = useState({});
 
-    const [username, setUsername] =
-        useState("");
+    const { login, loading } = useAuth();
 
-    const [password, setPassword] =
-        useState("");
-
-    const [errors, setErrors] =
-        useState({});
+    const navigate = useNavigate();
 
 
-    const {
-        login,
-        loading
-    } = useAuth();
-
-
-    const navigate =
-        useNavigate();
-
-
-    const handleSubmit = async (e) => {
-
-        e.preventDefault();
+    const handleSubmit = async (event) => {
+        event.preventDefault();
 
         setErrors({});
 
+        const cleanUsername = username.trim();
 
-        const result =
-            await login(
-                username,
+        if (!cleanUsername || !password) {
+            setErrors({
+                general: "من فضلك أدخل اسم المستخدم وكلمة المرور.",
+            });
+            return;
+        }
+
+        try {
+            const result = await login(
+                cleanUsername,
                 password
             );
 
+            if (!result?.user) {
+                const responseErrors = result?.errors || {};
 
-        console.log(
-            "LOGIN RESULT:",
-            result
-        );
+                setErrors({
+                    username: responseErrors.username
+                        ? getErrorMessage(responseErrors.username)
+                        : "",
+                    password: responseErrors.password
+                        ? getErrorMessage(responseErrors.password)
+                        : "",
+                    general: getErrorMessage(
+                        responseErrors.general ||
+                        responseErrors.detail ||
+                        responseErrors.non_field_errors ||
+                        "اسم المستخدم أو كلمة المرور غير صحيحة."
+                    ),
+                });
 
-
-        // ========================================
-        // Login Failed
-        // ========================================
-
-        if (!result?.user) {
-
-            console.log(
-                "UI ERROR:",
-                result?.errors
-            );
-
-
-            setErrors(
-                result?.errors || {}
-            );
-
-
-            return;
-
-        }
-
-
-        // ========================================
-        // Login Success
-        // ========================================
-
-        const user =
-            result.user;
-
-
-        const localCart =
-            JSON.parse(
-                localStorage.getItem("cart")
-            ) || [];
-
-
-        if (localCart.length > 0) {
-
-            try {
-
-                await syncCart(
-
-                    localCart.map(item => ({
-
-                        id:
-                            item.id,
-
-                        quantity:
-                            Number(
-                                item.quantity
-                            )
-
-                    }))
-
-                );
-
-
-                localStorage.removeItem(
-                    "cart"
-                );
-
-
-            } catch (error) {
-
-                console.error(
-                    "CART SYNC ERROR:",
-                    error
-                );
-
-
-                toast.error(
-                    error?.response?.data?.error ||
-                    "حدث خطأ أثناء مزامنة السلة"
-                );
-
+                return;
             }
 
+            const user = result.user;
+
+            let localCart = [];
+
+            try {
+                localCart = JSON.parse(
+                    localStorage.getItem("cart") || "[]"
+                );
+
+                if (!Array.isArray(localCart)) {
+                    localCart = [];
+                }
+            } catch {
+                localCart = [];
+            }
+
+            if (
+                user.role === "CUSTOMER" &&
+                localCart.length > 0
+            ) {
+                try {
+                    await syncCart(
+                        localCart
+                            .filter((item) => item?.id != null)
+                            .map((item) => ({
+                                id: item.id,
+                                quantity: Math.max(
+                                    1,
+                                    Number(item.quantity) || 1
+                                ),
+                            }))
+                    );
+
+                    localStorage.removeItem("cart");
+                } catch (error) {
+                    console.error("Cart sync error:", error);
+
+                    toast.error(
+                        error?.response?.data?.error ||
+                        "تم تسجيل الدخول، لكن تعذرت مزامنة السلة."
+                    );
+                }
+            }
+
+            if (user.role === "CUSTOMER") {
+                navigate("/");
+            } else {
+                navigate("/admin/dashboard");
+            }
+        } catch (error) {
+            console.error("Login error:", error);
+
+            const status = error?.response?.status;
+            const data = error?.response?.data;
+
+            if (status === 403) {
+                setErrors({
+                    general:
+                        data?.detail ||
+                        "يجب تأكيد البريد الإلكتروني قبل تسجيل الدخول.",
+                });
+            } else if (status === 429) {
+                setErrors({
+                    general:
+                        "محاولات تسجيل الدخول كثيرة. انتظر قليلًا ثم حاول مجددًا.",
+                });
+            } else if (!error?.response) {
+                setErrors({
+                    general:
+                        "تعذر الاتصال بالخادم. تأكد أن الـ Backend يعمل.",
+                });
+            } else {
+                setErrors({
+                    general:
+                        data?.detail ||
+                        data?.message ||
+                        "اسم المستخدم أو كلمة المرور غير صحيحة.",
+                });
+            }
         }
-
-
-        if (
-            user.role === "CUSTOMER"
-        ) {
-
-            navigate("/");
-
-            return;
-
-        }
-
-
-        navigate(
-            "/admin/dashboard"
-        );
-
     };
 
 
     return (
-
         <div
             dir="rtl"
             className="
@@ -169,212 +170,187 @@ const Login = () => {
                 justify-center
                 bg-gray-100
                 px-4
+                py-8
             "
         >
-
             <div
                 className="
                     w-full
                     max-w-md
+                    rounded-xl
                     bg-white
                     p-8
-                    rounded-xl
                     shadow-lg
                 "
             >
-
                 <h1
                     className="
+                        mb-2
+                        text-center
                         text-3xl
                         font-bold
-                        text-center
-                        mb-6
+                        text-gray-800
                     "
                 >
                     تسجيل الدخول
                 </h1>
 
+                <p className="mb-8 text-center text-sm text-gray-500">
+                    أهلًا بيك في صيدليتنا
+                </p>
 
                 <form
                     onSubmit={handleSubmit}
+                    noValidate
                 >
-
-                    {/* ================================= */}
-                    {/* Username */}
-                    {/* ================================= */}
-
-                    <div
-                        className="mb-5"
-                    >
+                    <div className="mb-5">
+                        <label
+                            htmlFor="username"
+                            className="mb-2 block font-medium text-gray-700"
+                        >
+                            اسم المستخدم
+                        </label>
 
                         <input
+                            id="username"
+                            name="username"
                             type="text"
-                            placeholder="اسم المستخدم"
+                            autoComplete="username"
+                            placeholder="أدخل اسم المستخدم"
                             value={username}
-                            onChange={(e) => {
+                            onChange={(event) => {
+                                setUsername(event.target.value);
 
-                                setUsername(
-                                    e.target.value
-                                );
-
+                                setErrors((previous) => ({
+                                    ...previous,
+                                    username: "",
+                                    general: "",
+                                }));
                             }}
+                            disabled={loading}
+                            required
                             className="
                                 w-full
+                                rounded-lg
                                 border
                                 border-gray-300
                                 p-3
-                                rounded-lg
                                 outline-none
+                                transition
+                                focus:border-blue-500
+                                focus:ring-2
+                                focus:ring-blue-100
+                                disabled:bg-gray-100
                             "
                         />
-
 
                         {errors.username && (
-
-                            <div
-                                style={{
-                                    display: "block",
-                                    color: "red",
-                                    marginTop: "8px",
-                                    fontSize: "14px",
-                                    fontWeight: "bold",
-                                }}
-                            >
+                            <p className="mt-2 text-sm text-red-600">
                                 {errors.username}
-                            </div>
-
+                            </p>
                         )}
-
                     </div>
 
-
-                    {/* ================================= */}
-                    {/* Password */}
-                    {/* ================================= */}
-
-                    <div
-                        className="mb-5"
-                    >
+                    <div className="mb-5">
+                        <label
+                            htmlFor="password"
+                            className="mb-2 block font-medium text-gray-700"
+                        >
+                            كلمة المرور
+                        </label>
 
                         <input
+                            id="password"
+                            name="password"
                             type="password"
-                            placeholder="كلمة المرور"
+                            autoComplete="current-password"
+                            placeholder="أدخل كلمة المرور"
                             value={password}
-                            onChange={(e) => {
+                            onChange={(event) => {
+                                setPassword(event.target.value);
 
-                                setPassword(
-                                    e.target.value
-                                );
-
+                                setErrors((previous) => ({
+                                    ...previous,
+                                    password: "",
+                                    general: "",
+                                }));
                             }}
+                            disabled={loading}
+                            required
                             className="
                                 w-full
+                                rounded-lg
                                 border
                                 border-gray-300
                                 p-3
-                                rounded-lg
                                 outline-none
+                                transition
+                                focus:border-blue-500
+                                focus:ring-2
+                                focus:ring-blue-100
+                                disabled:bg-gray-100
                             "
                         />
 
-
                         {errors.password && (
-
-                            <div
-                                style={{
-                                    display: "block",
-                                    color: "red",
-                                    marginTop: "8px",
-                                    fontSize: "14px",
-                                    fontWeight: "bold",
-                                }}
-                            >
+                            <p className="mt-2 text-sm text-red-600">
                                 {errors.password}
-                            </div>
-
+                            </p>
                         )}
-
                     </div>
 
-
-                    {/* ================================= */}
-                    {/* General Error */}
-                    {/* ================================= */}
-
                     {errors.general && (
-
                         <div
-                            style={{
-                                display: "block",
-                                color: "red",
-                                marginBottom: "20px",
-                                textAlign: "center",
-                                fontSize: "15px",
-                                fontWeight: "bold",
-                            }}
+                            role="alert"
+                            className="
+                                mb-5
+                                rounded-lg
+                                border
+                                border-red-200
+                                bg-red-50
+                                p-3
+                                text-sm
+                                text-red-700
+                            "
                         >
                             {errors.general}
                         </div>
-
                     )}
-
-
-                    {/* ================================= */}
-                    {/* Submit */}
-                    {/* ================================= */}
 
                     <button
                         type="submit"
                         disabled={loading}
                         className="
                             w-full
-                            bg-blue-600
-                            text-white
-                            p-3
                             rounded-lg
+                            bg-blue-600
+                            p-3
                             font-semibold
+                            text-white
+                            transition
+                            hover:bg-blue-700
+                            disabled:cursor-not-allowed
                             disabled:opacity-50
                         "
                     >
-
-                        {
-                            loading
-                                ? "جاري تسجيل الدخول..."
-                                : "دخول"
-                        }
-
+                        {loading
+                            ? "جاري تسجيل الدخول..."
+                            : "تسجيل الدخول"}
                     </button>
-
                 </form>
 
-
-                <p
-                    className="
-                        text-center
-                        mt-6
-                    "
-                >
-
+                <p className="mt-6 text-center text-gray-600">
                     ليس لديك حساب؟{" "}
-
                     <Link
                         to="/register"
-                        className="
-                            text-blue-600
-                            font-bold
-                        "
+                        className="font-bold text-blue-600 hover:text-blue-700"
                     >
                         سجل الآن
                     </Link>
-
                 </p>
-
             </div>
-
         </div>
-
     );
-
 };
 
 

@@ -1,8 +1,9 @@
+
 import api from "../../api/axios";
 
-/* ==========================================
-   Current User
-========================================== */
+// ========================================
+// Current User
+// ========================================
 
 export const getCurrentUser = async () => {
     const { data } = await api.get("/users/me/");
@@ -10,13 +11,17 @@ export const getCurrentUser = async () => {
 };
 
 export const updateCurrentUser = async (payload) => {
-    const { data } = await api.patch("/users/me/", payload);
+    const { data } = await api.patch(
+        "/users/me/",
+        payload
+    );
+
     return data;
 };
 
-/* ==========================================
-   Change Password
-========================================== */
+// ========================================
+// Change Password
+// ========================================
 
 export const changePassword = async (
     oldPassword,
@@ -35,9 +40,9 @@ export const changePassword = async (
     return data;
 };
 
-/* ==========================================
-   Users (Admin)
-========================================== */
+// ========================================
+// Admin - Users
+// ========================================
 
 export const getUsers = async () => {
     const { data } = await api.get("/users/");
@@ -45,7 +50,10 @@ export const getUsers = async () => {
 };
 
 export const getUser = async (id) => {
-    const { data } = await api.get(`/users/${id}/`);
+    const { data } = await api.get(
+        `/users/${id}/`
+    );
+
     return data;
 };
 
@@ -58,10 +66,7 @@ export const createUser = async (payload) => {
     return data;
 };
 
-export const updateUser = async (
-    id,
-    payload
-) => {
+export const updateUser = async (id, payload) => {
     const { data } = await api.patch(
         `/users/${id}/`,
         payload
